@@ -14,8 +14,7 @@
     "zip:web": "cd out && zip -qr ../shikkaos-web.zip ."
   },
   "dependencies": {
-    "@fontsource-variable/inter": "^5.1.0",
-    "@fontsource-variable/plus-jakarta-sans": "^5.1.0",
+    "@fontsource-variable/montserrat": "^5.1.0",
     "@fontsource/hind-siliguri": "^5.1.0",
     "@fontsource/noto-serif-bengali": "^5.1.0",
     "@hookform/resolvers": "^3.9.1",

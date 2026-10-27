@@ -1,4 +1,4 @@
-import type { AuditLog, DB, Role, Session } from "../contracts";
+import type { AuditLog, DB, PaperFile, Role, Session } from "../contracts";
 import { DB_VERSION, buildSeed } from "@/data/seed";
 import { sleep } from "@/lib/utils";
 
@@ -40,7 +40,41 @@ export function persist(): void {
 
 export function resetDb(): void {
   mem = buildSeed();
+  papersMem = [];
+  persistPapers();
   persist();
+}
+
+const PAPERS_KEY = "shikkaos:v1:papers";
+let papersMem: PaperFile[] | null = null;
+
+export function getPapers(): PaperFile[] {
+  if (papersMem) return papersMem;
+  papersMem = [];
+  if (typeof window !== "undefined") {
+    try {
+      const raw = window.localStorage.getItem(PAPERS_KEY);
+      if (raw) papersMem = JSON.parse(raw) as PaperFile[];
+    } catch {
+      papersMem = [];
+    }
+  }
+  return papersMem;
+}
+
+export function setPapers(list: PaperFile[]): void {
+  papersMem = list;
+}
+
+/** Papers live under their own storage key so large files cannot block saving the main DB. Returns false if storage is full. */
+export function persistPapers(): boolean {
+  if (typeof window === "undefined" || !papersMem) return true;
+  try {
+    window.localStorage.setItem(PAPERS_KEY, JSON.stringify(papersMem));
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 export async function latency(): Promise<void> {

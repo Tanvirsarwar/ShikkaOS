@@ -1,11 +1,12 @@
 "use client";
 import { useQueryClient } from "@tanstack/react-query";
-import { Check, Lock, Send } from "lucide-react";
+import { Check, FileText, Lock, Send } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Cell, MarkValue } from "@/api/contracts";
 import { repos } from "@/api/factory";
-import { RESULT_KEYS, useExamsQ, useMut, useMyCellsQ, useStudentsQ, useSubjectsQ } from "@/api/hooks";
+import { RESULT_KEYS, useExamsQ, useMut, useMyCellsQ, usePaperKeysQ, useStudentsQ, useSubjectsQ } from "@/api/hooks";
 import { Btn, Empty, Modal, SkeletonRows } from "@/components/ui";
+import { PaperModal } from "@/components/PaperModal";
 import { fmtDateTime } from "@/lib/dates";
 import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
@@ -73,6 +74,10 @@ function Grid({ cell, examId, roster, full }: { cell: Cell; examId: string; rost
   const [vals, setVals] = useState<Record<string, string>>(() => Object.fromEntries(roster.map((s) => [s.id, String(cell.marks[s.id] ?? "")])));
   const [saved, setSaved] = useState<string | null>(null);
   const [confirm, setConfirm] = useState(false);
+  const [paperOpen, setPaperOpen] = useState(false);
+  const paperKeys = usePaperKeysQ(examId);
+  const hasPaper = (paperKeys.data ?? []).includes(`${cell.classNo}-${cell.section}-${cell.subject}`);
+  const paperLocked = cell.state === "verified" || cell.state === "published";
   const refs = useRef<(HTMLInputElement | null)[]>([]);
   const dirty = useRef(false);
   const locked = cell.locked;
@@ -116,6 +121,7 @@ function Grid({ cell, examId, roster, full }: { cell: Cell; examId: string; rost
         <span className="chip">{t(`state.${cell.state}`)}</span>
         {locked ? <span className="chip" style={{ color: "var(--warn)" }}><Lock size={11} />{t("me.locked")}</span> : null}
         <div className="flex-1" />
+        <Btn size="sm" onClick={() => setPaperOpen(true)}><FileText size={13} />{hasPaper ? t("paper.attached") : paperLocked ? t("paper.none.short") : t("paper.add")}</Btn>
         <span className="faint text-[12px]">{saved ? <><Check size={12} className="inline" /> {t("me.saved")} {fmtDateTime(saved, lang)}</> : null}</span>
         <Btn variant="primary" disabled={locked || bad > 0 || filled !== roster.length || submit.isPending} onClick={() => setConfirm(true)}><Send size={14} />{t("me.submit")}</Btn>
       </div>
@@ -148,9 +154,11 @@ function Grid({ cell, examId, roster, full }: { cell: Cell; examId: string; rost
         <span>{t("me.filled", { a: filled, b: roster.length })}</span>
         {bad ? <span style={{ color: "var(--danger)" }}>{t("me.invalid", { n: bad, full })}</span> : null}
       </div>
+      {paperOpen ? <PaperModal k={k} readOnly={paperLocked} onClose={() => setPaperOpen(false)} /> : null}
       <Modal open={confirm} onClose={() => setConfirm(false)} title={t("me.confirm.title")}
         footer={<><Btn onClick={() => setConfirm(false)}>{t("cancel")}</Btn><Btn variant="primary" disabled={submit.isPending} onClick={() => void submit.mutateAsync(undefined).then(() => { setConfirm(false); void qc.invalidateQueries({ queryKey: ["myCells"] }); }).catch(() => undefined)}>{t("me.submit")}</Btn></>}>
         <p className="text-[13px]">{t("me.confirm.body", { n: roster.length, c: cell.classNo, s: cell.section, sub: cell.subject })}</p>
+        {!hasPaper ? <p className="mt-2 text-[12px]" style={{ color: "var(--warn)" }}>{t("paper.warn")}</p> : null}
       </Modal>
     </div>
   );

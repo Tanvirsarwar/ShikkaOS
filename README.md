@@ -20,9 +20,8 @@ Other commands: `pnpm build` (static export to `out/`), `pnpm start` (serves `ou
 | Registrar | `registrar@gcms.edu.bd` | `registrar123` |
 | Teacher | `01711000005` | `teacher123` |
 | Student (rich history) | `GC26-08A-07` | `student123` |
-| Petra Admin | `admin@petra.dev` | `petra123` |
 
-With `NEXT_PUBLIC_DEMO_MODE=true` (default) the login screen shows an **Enter as…** panel with one click per role.
+With `NEXT_PUBLIC_DEMO_MODE=true` (default) the login screen shows an **Enter as…** panel with one click per school role (Registrar, Teacher, Student).
 
 Verified sign-up (Student ID + join code + last 4 guardian digits): join code `GCMS-4821`. Last 4 digits come from the roster (Students app → profile). Teacher invites: Teachers app → Invite teacher, or use a pending invite code shown in the teacher profile.
 
@@ -79,3 +78,10 @@ unzip shikkaos-web.zip -d site && nix run nixpkgs#python3 -- -m http.server 3000
 ```
 
 The Electron app is only built in CI (`desktop/`), so no Electron binary is needed on NixOS. Windows builds are unsigned, so SmartScreen may warn on first run.
+
+## v1.2
+
+- **Deep Ocean** palette (light + dark), Montserrat for English, Hind Siliguri for Bangla. No emoji; line icons only.
+- **Profiles:** students, teachers and the registrar can add/crop/remove a photo and edit their own details; the registrar can edit any student or teacher (Students/Teachers apps, profile, Edit profile).
+- **Question paper:** teachers attach the paper (PDF/image, up to 1.2 MB) from Marks Entry, fill the marks sheet and submit it; the registrar opens the paper from the Results Center cell panel before verifying.
+- **Petra console** is not on the school login page. See `docs/PETRA-CONSOLE.md`.

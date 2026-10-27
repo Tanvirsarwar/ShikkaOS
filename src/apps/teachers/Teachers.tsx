@@ -1,10 +1,11 @@
 "use client";
-import { Check, Copy, KeyRound, Link2, Plus, Upload } from "lucide-react";
+import { Check, Copy, KeyRound, Link2, Pencil, Plus, Upload } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import type { Teacher } from "@/api/contracts";
 import { repos } from "@/api/factory";
 import { keys, useInvitesQ, useMut, useSubjectsQ, useTeachersQ } from "@/api/hooks";
+import { PersonEdit } from "@/components/PersonEdit";
 import { Avatar, Badge, Btn, Drawer, Empty, ErrorBox, Field, Modal, SkeletonRows } from "@/components/ui";
 import { ImportWizard } from "@/features/results/ImportWizard";
 import { useT } from "@/lib/i18n";
@@ -41,7 +42,7 @@ export default function Teachers() {
         <div className="scroll-thin grid flex-1 content-start gap-3 overflow-auto p-3" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(230px, 1fr))" }}>
           {list.map((x) => (
             <button key={x.id} type="button" className="card p-3 text-left" onClick={() => setSel(x)}>
-              <div className="flex items-center gap-2"><Avatar name={x.name} size={36} /><div className="min-w-0"><div className="truncate font-bold">{lang === "bn" ? x.nameBn : x.name}</div><div className="faint truncate text-[12px]">{x.designation}</div></div></div>
+              <div className="flex items-center gap-2"><Avatar name={x.name} size={36} photo={x.photo} /><div className="min-w-0"><div className="truncate font-bold">{lang === "bn" ? x.nameBn : x.name}</div><div className="faint truncate text-[12px]">{x.designation}</div></div></div>
               <div className="mt-2 flex items-center justify-between text-[12px]"><span className="muted">{x.phone}</span>{x.status === "invited" ? <Badge tone="warn">{t("teachers.invited")}</Badge> : <Badge tone="ok">{t("teachers.active")}</Badge>}</div>
               <div className="faint mt-1 text-[12px]">{t("teachers.assignments", { n: x.assignments.length })}</div>
             </button>
@@ -99,13 +100,16 @@ function Profile({ teacher, code, link, copy, subjectsFor }: { teacher: Teacher;
   const [section, setSection] = useState("A");
   const [subject, setSubject] = useState("");
   const [pw, setPw] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
   const save = useMut((a: Teacher["assignments"]) => repos.teacher.setAssignments(teacher.id, a), [keys.teachers], t("teachers.saved"));
   const [list, setList] = useState(teacher.assignments);
   const opts = subjectsFor(classNo);
   return (
     <div className="grid gap-3 text-[13px]">
-      <div className="flex items-center gap-3"><Avatar name={teacher.name} size={52} /><div><div className="serif-bn text-lg font-bold">{lang === "bn" ? teacher.nameBn : teacher.name}</div><div className="muted">{teacher.designation}</div></div></div>
+      <div className="flex items-center gap-3"><Avatar name={teacher.name} size={52} photo={teacher.photo} /><div><div className="serif-bn text-lg font-bold">{lang === "bn" ? teacher.nameBn : teacher.name}</div><div className="muted">{teacher.designation}</div></div></div>
       <div className="muted">{teacher.phone} · {teacher.email}</div>
+      <div><Btn size="sm" onClick={() => setEditing(true)}><Pencil size={13} />{t("pf.edit")}</Btn></div>
+      {editing ? <PersonEdit kind="teacher" person={teacher} onClose={() => setEditing(false)} /> : null}
       {teacher.status === "invited" && code ? <div className="hair grid gap-2 p-3"><div className="faint text-[11px]">{t("signup.invitecode")}</div><code className="font-extrabold">{code}</code><Btn size="sm" onClick={() => copy(link(code))}><Link2 size={13} />{t("teachers.copylink")}</Btn></div> : null}
       <div>
         <div className="label">{t("teachers.assign")}</div>

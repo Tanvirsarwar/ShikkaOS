@@ -31,7 +31,7 @@ export default function Notices() {
               <li key={x.id} className="card p-3">
                 <div className="flex items-start gap-2">
                   <button type="button" className="min-w-0 flex-1 text-left" onClick={() => { setSel(x); if (!reg) void repos.notice.markRead(x.id); }}>
-                    <div className="flex flex-wrap items-center gap-1.5"><span className="font-bold">{x.pinned ? "📌 " : ""}{x.title}</span><Badge>{x.audience === "all" ? t("nt.aud.all") : x.audience === "teachers" ? t("nt.aud.teachers") : t("nt.aud.class", { c: x.classNo ?? "" })}</Badge>{future ? <Badge tone="warn">{t("nt.scheduled")}</Badge> : null}</div>
+                    <div className="flex flex-wrap items-center gap-1.5"><span className="font-bold">{x.pinned ? <Pin size={12} className="mr-1 inline -translate-y-px" /> : null}{x.title}</span><Badge>{x.audience === "all" ? t("nt.aud.all") : x.audience === "teachers" ? t("nt.aud.teachers") : t("nt.aud.class", { c: x.classNo ?? "" })}</Badge>{future ? <Badge tone="warn">{t("nt.scheduled")}</Badge> : null}</div>
                     <div className="muted mt-1 line-clamp-2 text-[13px]">{x.body}</div>
                     <div className="faint mt-1 flex items-center gap-3 text-[11px]"><span>{fmtDateTime(x.publishAt, lang)}</span>{reg ? <span className="flex items-center gap-1"><Eye size={11} />{n(x.reads)}</span> : null}</div>
                   </button>

@@ -1,12 +1,13 @@
 "use client";
 import { flexRender, getCoreRowModel, getSortedRowModel, useReactTable, type ColumnDef, type SortingState } from "@tanstack/react-table";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { ArrowUpDown, KeyRound, Upload } from "lucide-react";
+import { ArrowUpDown, KeyRound, Pencil, Upload } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import type { Student } from "@/api/contracts";
 import { repos } from "@/api/factory";
 import { useStudentsQ } from "@/api/hooks";
+import { PersonEdit } from "@/components/PersonEdit";
 import { Avatar, Badge, Btn, Drawer, Empty, ErrorBox, Ring, SkeletonRows } from "@/components/ui";
 import { ImportWizard } from "@/features/results/ImportWizard";
 import { fmtDate } from "@/lib/dates";
@@ -26,6 +27,7 @@ export default function Students() {
   const [open, setOpen] = useState<Student | null>(null);
   const [wiz, setWiz] = useState(false);
   const [pw, setPw] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
   const intent = useIntent((s) => s.intent);
   const clear = useIntent((s) => s.clear);
   useEffect(() => { if (intent?.kind === "search" && intent.app === "students") { setSearch(intent.q); clear(); } }, [intent, clear]);
@@ -39,7 +41,7 @@ export default function Students() {
   const columns = useMemo<ColumnDef<Student>[]>(() => [
     { accessorKey: "studentId", header: t("col.studentid") },
     { accessorKey: "roll", header: t("col.roll") },
-    { id: "name", accessorFn: (r) => (lang === "bn" ? r.nameBn : r.name), header: t("col.name"), cell: (c) => <span className="flex items-center gap-2"><Avatar name={c.row.original.name} size={24} /><span className="truncate">{String(c.getValue())}</span></span> },
+    { id: "name", accessorFn: (r) => (lang === "bn" ? r.nameBn : r.name), header: t("col.name"), cell: (c) => <span className="flex items-center gap-2"><Avatar name={c.row.original.name} size={24} photo={c.row.original.photo} /><span className="truncate">{String(c.getValue())}</span></span> },
     { accessorKey: "classNo", header: t("col.class") },
     { accessorKey: "section", header: t("col.section") },
     { accessorKey: "guardian", header: t("col.guardian") },
@@ -92,13 +94,15 @@ export default function Students() {
           </div>
         </div>
       )}
+      {editing && open ? <PersonEdit kind="student" person={open} onClose={() => { setEditing(false); setOpen(null); }} /> : null}
       <Drawer open={!!open} onClose={() => { setOpen(null); setPw(null); }} title={t("students.profile")}>
         {open ? (
           <div className="grid gap-3 text-[13px]">
-            <div className="flex items-center gap-3"><Avatar name={open.name} size={52} /><div><div className="serif-bn text-lg font-bold">{lang === "bn" ? open.nameBn : open.name}</div><div className="muted">{open.studentId}</div></div></div>
+            <div className="flex items-center gap-3"><Avatar name={open.name} size={52} photo={open.photo} /><div><div className="serif-bn text-lg font-bold">{lang === "bn" ? open.nameBn : open.name}</div><div className="muted">{open.studentId}</div></div></div>
             {[[t("col.class"), `${open.classNo}-${open.section}`], [t("col.roll"), String(open.roll)], [t("col.guardian"), open.guardian], [t("students.phone"), open.guardianPhone], [t("students.admission"), fmtDate(open.admission, lang)], [t("col.status"), stLabel(open.status)]].map(([l, v]) => (
               <div key={l} className="flex justify-between border-b py-1.5" style={{ borderColor: "var(--line)" }}><span className="muted">{l}</span><span className="font-semibold">{v}</span></div>
             ))}
+            <Btn onClick={() => setEditing(true)}><Pencil size={14} />{t("pf.edit")}</Btn>
             <Btn disabled={open.status === "unclaimed"} onClick={() => { repos.student.resetPassword(open.id).then((p) => { setPw(p); toast.success(t("students.reset.ok")); }).catch((e: unknown) => toast.error(e instanceof Error ? e.message : t("error.generic"))); }}><KeyRound size={14} />{t("students.reset")}</Btn>
             {pw ? <div className="hair p-3"><div className="faint text-[11px]">{t("students.reset.temp")}</div><code className="text-base font-bold">{pw}</code></div> : null}
           </div>

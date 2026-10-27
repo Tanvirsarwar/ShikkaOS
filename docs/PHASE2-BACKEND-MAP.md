@@ -107,3 +107,12 @@ Tables: `routine_slots(school_id, class_no, section, day 0-4, period 1-8, subjec
 | setSlot / clearSlot | `PUT/DELETE /routine/:class/:section/:day/:period` | R; clash returns 409 |
 | examSlots | `GET /exams/:id/routine` | all roles |
 | saveExamSlot / removeExamSlot | `POST/PUT/DELETE /exams/:id/routine` | R; overlapping time for the same class returns 409 |
+
+## ProfileRepo and question papers (v1.2)
+| Method | Endpoint | Table | Rule |
+|---|---|---|---|
+| profile.me / updateMe | `GET/PATCH /me/profile` | students, teachers, users (`photo_url`, `bio`, `phone`, `address`, `blood_group`) | own record; teacher phone is the login id, not editable |
+| profile.updatePerson | `PATCH /students/:id`, `PATCH /teachers/:id` | same | R |
+| profile.changePassword | `POST /me/password` | users.password_hash | own |
+| marks.paper / savePaper / removePaper | `GET/PUT/DELETE /marks/.../paper` | `question_papers(id, school_id, exam_id, class_no, section, subject, file_url, mime, size, uploaded_by, at)` | T own assignment, locked after verify; R read; files in object storage with signed URLs |
+| auth.loginPetra | `POST /platform/auth/login` | platform_users | separate credential store and deployment; never accepts school users |

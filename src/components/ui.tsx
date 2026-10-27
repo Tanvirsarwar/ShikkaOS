@@ -125,7 +125,11 @@ export function Ring({ value, size = 84, stroke = 9, label }: { value: number; s
 }
 
 const HUES = [150, 215, 20, 330, 190, 40, 270, 100];
-export function Avatar({ name, size = 32 }: { name: string; size?: number }) {
+export function Avatar({ name, size = 32, photo }: { name: string; size?: number; photo?: string | null }) {
+  if (photo) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={photo} alt={name} width={size} height={size} className="shrink-0 rounded-full object-cover" style={{ width: size, height: size, boxShadow: "0 0 0 0.5px rgba(0,0,0,.2)" }} />;
+  }
   const init = name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]).join("");
   const h = HUES[(name.length + (name.charCodeAt(0) || 0)) % HUES.length] ?? 150;
   return (
@@ -140,7 +144,7 @@ export function Monogram({ text, color, size = 40 }: { text: string; color: stri
     <svg width={size} height={size} viewBox="0 0 40 40" role="img" aria-label={text}>
       <rect width="40" height="40" rx="11" fill={color} />
       <path d="M0 29 Q10 22 20 29 T40 29 V40 H0Z" fill="rgba(255,255,255,.14)" />
-      <text x="20" y="25.5" textAnchor="middle" fontSize="15" fontWeight="800" fill="#fff" fontFamily="Plus Jakarta Sans Variable, sans-serif">{text}</text>
+      <text x="20" y="25.5" textAnchor="middle" fontSize="15" fontWeight="800" fill="#fff" fontFamily="Montserrat Variable, sans-serif">{text}</text>
     </svg>
   );
 }

@@ -1,5 +1,5 @@
 "use client";
-import { CalendarClock, ChevronRight, CloudSun, GraduationCap, Megaphone, PencilLine, Plus, Trophy, Upload, UserPlus } from "lucide-react";
+import { CalendarClock, ChevronRight, Flag, GraduationCap, Megaphone, Pin, PencilLine, Plus, Trophy, Upload, UserPlus } from "lucide-react";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { useExamsQ, useRoutineQ, useSubjectsQ, useMatrixQ, useMyCellsQ, useMyExamsQ, useNoticesQ, usePlatformQ, useSignupsQ, useStudentsQ } from "@/api/hooks";
@@ -37,7 +37,7 @@ function SeasonBanner() {
   return (
     <section className="card relative overflow-hidden p-5" style={{ gridColumn: "1 / -1" }}>
             <div className="flex items-center gap-3">
-        <span className="grid size-10 shrink-0 place-items-center rounded-xl text-white" style={{ background: SEASON_ACCENT[season] }}>{season === "admission" ? <GraduationCap size={20} /> : season === "exam" ? <PencilLine size={20} /> : season === "result" ? <Trophy size={20} /> : <CloudSun size={20} />}</span>
+        <span className="grid size-10 shrink-0 place-items-center rounded-xl text-white" style={{ background: SEASON_ACCENT[season] }}>{season === "admission" ? <GraduationCap size={20} /> : season === "exam" ? <PencilLine size={20} /> : season === "result" ? <Trophy size={20} /> : <Flag size={20} />}</span>
         <div>
           <div className="serif-bn text-lg font-bold">{t(`season.${season}.greet`)}{session ? `, ${session.name.split(",")[0]}` : ""}</div>
           <div className="muted text-[13px]">{t(`season.${season}.hint`)}</div>
@@ -55,7 +55,7 @@ function NoticesWidget() {
       {isLoading ? <Skeleton h={60} /> : (
         <ul className="grid gap-2">
           {(data ?? []).slice(0, 3).map((n) => (
-            <li key={n.id} className="text-[13px]"><div className="font-semibold">{n.pinned ? "📌 " : ""}{n.title}</div><div className="faint text-[11px]">{fmtDateTime(n.publishAt, lang)}</div></li>
+            <li key={n.id} className="text-[13px]"><div className="font-semibold">{n.pinned ? <Pin size={12} className="mr-1 inline -translate-y-px" /> : null}{n.title}</div><div className="faint text-[11px]">{fmtDateTime(n.publishAt, lang)}</div></li>
           ))}
         </ul>
       )}

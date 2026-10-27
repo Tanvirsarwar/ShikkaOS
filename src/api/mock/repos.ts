@@ -1,9 +1,9 @@
-import type { Cell, Invite, Notice, School, Session, Student, Teacher, User } from "../contracts";
+import type { Cell, Invite, PaperFile, Notice, School, Session, Student, Teacher, User } from "../contracts";
 import type {
   ApprovalRepo, AuditRepo, AuthRepo, ClassRepo, CellKey, ExamRepo, MagazineRepo, MarksRepo, NoticeRepo, PlatformRepo,
-  Repos, ResultRepo, RoutineRepo, SchoolBrand, SchoolRepo, StudentRepo, TeacherRepo,
+  ProfileRepo, Repos, ResultRepo, RoutineRepo, SchoolBrand, SchoolRepo, StudentRepo, TeacherRepo,
 } from "../repositories";
-import { ApiError, audit, getDb, latency, maybeFail, need, notify, persist, readSession, resetDb, writeSession } from "./db";
+import { ApiError, audit, getDb, getPapers, latency, persistPapers, setPapers, maybeFail, need, notify, persist, readSession, resetDb, writeSession } from "./db";
 import { applyScheduled, classCells, computeClass } from "./compute";
 import { DEFAULT_GRADING } from "@/lib/grading";
 import { MAIN_SCHOOL_ID, PETRA_SCHOOL_ID } from "@/data/seed";
@@ -31,12 +31,23 @@ const auth: AuthRepo = {
     await latency();
     const db = getDb();
     const u = db.users.find((x) => x.loginId.toLowerCase() === id.trim().toLowerCase());
-    if (!u || u.password !== password) throw new ApiError("ID or password is not correct.", "invalid_credentials");
+    if (!u || u.role === "petra" || u.password !== password) throw new ApiError("ID or password is not correct.", "invalid_credentials");
     if (u.status === "pending") throw new ApiError("Your sign-up is waiting for registrar approval.", "pending");
     if (u.status === "disabled") throw new ApiError("This account is disabled. Contact your registrar.", "disabled");
     const s = toSession(u);
     writeSession(s);
     audit(s, "auth.login", "Session", "Signed in");
+    persist();
+    return s;
+  },
+  async loginPetra(id, password) {
+    await latency();
+    const db = getDb();
+    const u = db.users.find((x) => x.role === "petra" && x.loginId.toLowerCase() === id.trim().toLowerCase());
+    if (!u || u.password !== password) throw new ApiError("ID or password is not correct.", "invalid_credentials");
+    const s = toSession(u);
+    writeSession(s);
+    audit(s, "auth.login", "Session", "Petra console sign-in");
     persist();
     return s;
   },
@@ -319,7 +330,50 @@ const exam: ExamRepo = {
   },
 };
 
+const PAPER_MAX = 1_200_000;
+const PAPER_MIME = ["application/pdf", "image/png", "image/jpeg", "image/webp"];
+
 const marks: MarksRepo = {
+  async paper(k) {
+    await latency();
+    const s = need("registrar", "teacher");
+    const p = getPapers().find((x) => x.schoolId === s.schoolId && x.examId === k.examId && x.classNo === k.classNo && x.section === k.section && x.subject === k.subject);
+    if (p && s.role === "teacher" && findCell(k, s.schoolId).submittedBy !== s.refId) throw new ApiError("This subject is not assigned to you.", "forbidden");
+    return p ? clone(p) : null;
+  },
+  async paperKeys(examId) {
+    await latency();
+    const s = need("registrar", "teacher");
+    return getPapers().filter((x) => x.schoolId === s.schoolId && x.examId === examId).map((x) => `${x.classNo}-${x.section}-${x.subject}`);
+  },
+  async savePaper(k, file) {
+    await latency();
+    const s = need("teacher");
+    const c = findCell(k, s.schoolId);
+    if (c.submittedBy !== s.refId) throw new ApiError("This subject is not assigned to you.", "forbidden");
+    if (c.state === "verified" || c.state === "published") throw new ApiError("The registrar already verified this sheet. The paper can no longer be changed.", "locked");
+    if (!PAPER_MIME.includes(file.mime)) throw new ApiError("Upload a PDF, PNG, JPG or WebP file.", "invalid");
+    if (file.size > PAPER_MAX) throw new ApiError("The file is larger than 1.2 MB. Compress it and try again.", "invalid");
+    const rest = getPapers().filter((x) => !(x.schoolId === s.schoolId && x.examId === k.examId && x.classNo === k.classNo && x.section === k.section && x.subject === k.subject));
+    const row: PaperFile = { id: `${s.schoolId}_p${Date.now().toString(36)}`, schoolId: s.schoolId, examId: k.examId, classNo: k.classNo, section: k.section, subject: k.subject, name: file.name.slice(0, 120), mime: file.mime, size: file.size, dataUrl: file.dataUrl, uploadedBy: s.refId ?? s.userId, at: new Date().toISOString() };
+    const prev = getPapers();
+    setPapers([...rest, row]);
+    if (!persistPapers()) { setPapers(prev); throw new ApiError("Browser storage is full. Remove an old paper first.", "storage_full"); }
+    audit(s, "paper.save", "Question paper", `${label(k)}: ${row.name}`);
+    persist();
+    return clone(row);
+  },
+  async removePaper(k) {
+    await latency();
+    const s = need("teacher");
+    const c = findCell(k, s.schoolId);
+    if (c.submittedBy !== s.refId) throw new ApiError("This subject is not assigned to you.", "forbidden");
+    if (c.state === "verified" || c.state === "published") throw new ApiError("The registrar already verified this sheet.", "locked");
+    setPapers(getPapers().filter((x) => !(x.schoolId === s.schoolId && x.examId === k.examId && x.classNo === k.classNo && x.section === k.section && x.subject === k.subject)));
+    persistPapers();
+    audit(s, "paper.remove", "Question paper", label(k));
+    persist();
+  },
   async cell(k) {
     await latency();
     const s = need("registrar", "teacher");
@@ -802,4 +856,108 @@ const routine: RoutineRepo = {
   },
 };
 
-export const mockRepos: Repos = { auth, school, student, teacher, klass, exam, marks, result, magazine, notice, approval, audit: auditRepo, platform, routine };
+const validPhoto = (v: string): boolean => /^data:image\/(png|jpeg|webp);base64,/.test(v) && v.length <= 220_000;
+const emailOk = (v: string): boolean => v === "" || /^\S+@\S+\.\S+$/.test(v);
+
+function applyCommon(target: { photo?: string; bio?: string }, patch: { bio?: string; photo?: string | null }): void {
+  if (patch.bio !== undefined) {
+    if (patch.bio.length > 280) throw new ApiError("Bio can be up to 280 characters.", "invalid");
+    target.bio = patch.bio.trim();
+  }
+  if (patch.photo !== undefined) {
+    if (patch.photo === null) delete target.photo;
+    else if (validPhoto(patch.photo)) target.photo = patch.photo;
+    else throw new ApiError("That photo could not be used. Choose a PNG, JPG or WebP image.", "invalid");
+  }
+}
+
+const toProfile = (s: Session): import("../repositories").MyProfile => {
+  const db = getDb();
+  if (s.role === "student") {
+    const st = db.students.find((x) => x.id === s.refId);
+    if (!st) throw new ApiError("Student record not found.", "not_found");
+    return { role: s.role, name: st.name, nameBn: st.nameBn, photo: st.photo ?? null, bio: st.bio ?? "", email: "", phone: st.phone ?? "", address: st.address ?? "", bloodGroup: st.bloodGroup ?? "" };
+  }
+  if (s.role === "teacher") {
+    const t = db.teachers.find((x) => x.id === s.refId);
+    if (!t) throw new ApiError("Teacher record not found.", "not_found");
+    return { role: s.role, name: t.name, nameBn: t.nameBn, photo: t.photo ?? null, bio: t.bio ?? "", email: t.email, phone: t.phone, address: "", bloodGroup: "" };
+  }
+  const u = db.users.find((x) => x.id === s.userId);
+  return { role: s.role, name: s.name, nameBn: s.name, photo: u?.photo ?? null, bio: "", email: u?.loginId ?? "", phone: "", address: "", bloodGroup: "" };
+};
+
+const profile: ProfileRepo = {
+  async me() {
+    await latency();
+    return toProfile(need());
+  },
+  async updateMe(patch) {
+    await latency();
+    const s = need();
+    const db = getDb();
+    if (s.role === "student") {
+      const st = db.students.find((x) => x.id === s.refId);
+      if (!st) throw new ApiError("Student record not found.", "not_found");
+      if (patch.nameBn !== undefined) { if (!patch.nameBn.trim()) throw new ApiError("Bangla name cannot be empty.", "invalid"); st.nameBn = patch.nameBn.trim(); }
+      if (patch.phone !== undefined) { const d = patch.phone.replace(/\D/g, ""); if (d && d.length !== 11) throw new ApiError("Phone must have 11 digits.", "invalid"); st.phone = d; }
+      if (patch.address !== undefined) st.address = patch.address.trim().slice(0, 160);
+      if (patch.bloodGroup !== undefined) st.bloodGroup = patch.bloodGroup;
+      applyCommon(st, patch);
+    } else if (s.role === "teacher") {
+      const t = db.teachers.find((x) => x.id === s.refId);
+      if (!t) throw new ApiError("Teacher record not found.", "not_found");
+      if (patch.nameBn !== undefined) { if (!patch.nameBn.trim()) throw new ApiError("Bangla name cannot be empty.", "invalid"); t.nameBn = patch.nameBn.trim(); }
+      if (patch.email !== undefined) { if (!emailOk(patch.email.trim())) throw new ApiError("Email is not valid.", "invalid"); t.email = patch.email.trim(); }
+      applyCommon(t, patch);
+    } else {
+      const u = db.users.find((x) => x.id === s.userId);
+      if (!u) throw new ApiError("User not found.", "not_found");
+      applyCommon(u, patch);
+    }
+    audit(s, "profile.update", "Profile", "Updated own profile");
+    persist();
+    return toProfile(s);
+  },
+  async updatePerson(kind, id, patch) {
+    await latency();
+    const s = need("registrar");
+    const db = getDb();
+    if (kind === "student") {
+      const st = db.students.find((x) => x.id === id && x.schoolId === s.schoolId);
+      if (!st) throw new ApiError("Student not found.", "not_found");
+      if (patch.name !== undefined) { if (patch.name.trim().length < 2) throw new ApiError("Name is too short.", "invalid"); st.name = patch.name.trim(); }
+      if (patch.nameBn !== undefined && patch.nameBn.trim()) st.nameBn = patch.nameBn.trim();
+      if (patch.guardian !== undefined && patch.guardian.trim()) st.guardian = patch.guardian.trim();
+      if (patch.guardianPhone !== undefined) { const d = patch.guardianPhone.replace(/\D/g, ""); if (d.length !== 11) throw new ApiError("Guardian phone must have 11 digits.", "invalid"); st.guardianPhone = d; }
+      if (patch.phone !== undefined) st.phone = patch.phone.replace(/\D/g, "");
+      if (patch.address !== undefined) st.address = patch.address.trim().slice(0, 160);
+      if (patch.bloodGroup !== undefined) st.bloodGroup = patch.bloodGroup;
+      applyCommon(st, patch);
+      audit(s, "student.edit", "Student", `Edited ${st.studentId}`);
+    } else {
+      const t = db.teachers.find((x) => x.id === id && x.schoolId === s.schoolId);
+      if (!t) throw new ApiError("Teacher not found.", "not_found");
+      if (patch.name !== undefined) { if (patch.name.trim().length < 2) throw new ApiError("Name is too short.", "invalid"); t.name = patch.name.trim(); }
+      if (patch.nameBn !== undefined && patch.nameBn.trim()) t.nameBn = patch.nameBn.trim();
+      if (patch.email !== undefined) { if (!emailOk(patch.email.trim())) throw new ApiError("Email is not valid.", "invalid"); t.email = patch.email.trim(); }
+      if (patch.designation !== undefined && patch.designation.trim()) t.designation = patch.designation.trim();
+      applyCommon(t, patch);
+      audit(s, "teacher.edit", "Teacher", `Edited ${t.name}`);
+    }
+    persist();
+  },
+  async changePassword(current, next) {
+    await latency();
+    const s = need();
+    const u = getDb().users.find((x) => x.id === s.userId);
+    if (!u || u.password !== current) throw new ApiError("Current password is not correct.", "invalid_credentials");
+    if (next.length < 8) throw new ApiError("New password must be at least 8 characters.", "invalid");
+    u.password = next;
+    u.mustReset = false;
+    audit(s, "profile.password", "Profile", "Changed password");
+    persist();
+  },
+};
+
+export const mockRepos: Repos = { auth, school, student, teacher, klass, exam, marks, result, magazine, notice, approval, audit: auditRepo, platform, routine, profile };

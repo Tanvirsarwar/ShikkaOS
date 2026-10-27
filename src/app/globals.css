@@ -1,6 +1,5 @@
 @import "tailwindcss";
-@import "@fontsource-variable/inter";
-@import "@fontsource-variable/plus-jakarta-sans";
+@import "@fontsource-variable/montserrat";
 @import "@fontsource/hind-siliguri/400.css";
 @import "@fontsource/hind-siliguri/500.css";
 @import "@fontsource/hind-siliguri/600.css";
@@ -10,53 +9,53 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-  --paper: #f7f3ea;
-  --paper-2: #efe9db;
-  --card: rgba(255, 253, 248, 0.64);
-  --card-solid: #fffdf8;
-  --win: rgba(255, 253, 250, 0.96);
+  --paper: #e6eef5;
+  --paper-2: #d6e4ee;
+  --card: rgba(255, 255, 255, 0.62);
+  --card-solid: #f8fbfd;
+  --win: rgba(247, 251, 253, 0.96);
   --edge: rgba(255, 255, 255, 0.65);
-  --sheet: rgba(250, 248, 255, 0.86);
-  --hover: rgba(20, 16, 40, 0.06);
-  --press: rgba(20, 16, 40, 0.11);
-  --btn-top: rgba(255, 255, 255, 0.95);
-  --btn-bot: rgba(244, 242, 250, 0.9);
-  --ink: #1f1b16;
-  --ink-2: #5c554a;
-  --ink-3: #8a8274;
-  --line: rgba(31, 27, 22, 0.12);
+  --sheet: rgba(245, 250, 253, 0.88);
+  --hover: rgba(12, 34, 51, 0.06);
+  --press: rgba(12, 34, 51, 0.11);
+  --btn-top: rgba(255, 255, 255, 0.96);
+  --btn-bot: rgba(232, 241, 247, 0.92);
+  --ink: #0c2233;
+  --ink-2: #3d586c;
+  --ink-3: #6a8597;
+  --line: rgba(12, 34, 51, 0.12);
   --shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(20, 16, 40, 0.06), 0 8px 24px rgba(20, 16, 40, 0.07);
   --shadow-lg: 0 2px 6px rgba(31, 27, 22, 0.08), 0 24px 60px rgba(31, 27, 22, 0.16);
-  --school-primary: #2f7a5b;
+  --school-primary: #1c6e8c;
   --accent: var(--school-primary);
   --glass: rgba(255, 255, 255, 0.5);
   --danger: #b42318;
   --warn: #b7791f;
   --ok: #2f7a5b;
   --radius: 14px;
-  --font-ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter Variable", "Hind Siliguri", system-ui, sans-serif;
-  --font-serif: "Noto Serif Bengali", "Plus Jakarta Sans Variable", Georgia, serif;
+  --font-ui: "Montserrat Variable", "Hind Siliguri", system-ui, sans-serif;
+  --font-serif: "Noto Serif Bengali", "Montserrat Variable", Georgia, serif;
 }
 
 .dark {
-  --paper: #1c1a17;
-  --paper-2: #24211d;
-  --card: rgba(44, 40, 52, 0.58);
-  --card-solid: #2a2722;
-  --win: rgba(32, 30, 40, 0.95);
+  --paper: #0b1b2e;
+  --paper-2: #12273d;
+  --card: rgba(20, 42, 66, 0.58);
+  --card-solid: #12263c;
+  --win: rgba(14, 30, 48, 0.95);
   --edge: rgba(255, 255, 255, 0.16);
-  --sheet: rgba(36, 34, 46, 0.88);
+  --sheet: rgba(16, 34, 54, 0.9);
   --hover: rgba(255, 255, 255, 0.08);
   --press: rgba(255, 255, 255, 0.14);
   --btn-top: rgba(255, 255, 255, 0.16);
   --btn-bot: rgba(255, 255, 255, 0.08);
-  --ink: #f0ebe0;
-  --ink-2: #b9b2a3;
-  --ink-3: #8b8475;
-  --line: rgba(240, 235, 224, 0.14);
+  --ink: #e6f0f7;
+  --ink-2: #a9c0d0;
+  --ink-3: #7690a3;
+  --line: rgba(200, 225, 240, 0.14);
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 6px 20px rgba(0, 0, 0, 0.25);
   --shadow-lg: 0 2px 6px rgba(0, 0, 0, 0.4), 0 24px 60px rgba(0, 0, 0, 0.5);
-  --glass: rgba(40, 38, 50, 0.5);
+  --glass: rgba(18, 40, 64, 0.5);
   --danger: #f97066;
   --warn: #f5b84a;
   --ok: #5fc59a;
@@ -183,31 +182,24 @@ button { font-family: inherit; }
 /* ---- Apple-style glass wallpaper & windows ---- */
 .wallpaper {
   position: relative;
-  background-color: #efe9f4;
+  background-color: #cfe0ec;
   background-image:
-    radial-gradient(55% 50% at 12% 8%, color-mix(in srgb, var(--school-primary) 62%, #ffffff) 0%, transparent 70%),
-    radial-gradient(48% 45% at 88% 12%, #ffd0a0 0%, transparent 70%),
-    radial-gradient(52% 55% at 78% 92%, #9fc4ff 0%, transparent 72%),
-    radial-gradient(42% 42% at 8% 90%, #f4a9cf 0%, transparent 70%),
-    linear-gradient(135deg, #f6f0e4 0%, #e6e0f3 100%);
-  background-size: 140% 140%, 140% 140%, 140% 140%, 140% 140%, 100% 100%;
-  animation: drift 48s ease-in-out infinite alternate;
-}
-.wallpaper::before {
-  content: ""; position: absolute; inset: 0; pointer-events: none; opacity: 0.35; mix-blend-mode: soft-light;
-  background-image: radial-gradient(circle at 20px 20px, rgba(255,255,255,.9) 1.5px, transparent 2px);
-  background-size: 40px 40px;
+    radial-gradient(60% 55% at 15% 8%, rgba(95, 179, 179, 0.55) 0%, transparent 70%),
+    radial-gradient(55% 50% at 90% 18%, rgba(255, 255, 255, 0.7) 0%, transparent 70%),
+    radial-gradient(60% 60% at 80% 95%, rgba(28, 110, 140, 0.35) 0%, transparent 72%),
+    linear-gradient(160deg, #e6eef5 0%, #cfe0ec 52%, #b4d0e0 100%);
+  background-size: 130% 130%, 130% 130%, 130% 130%, 100% 100%;
+  animation: drift 56s ease-in-out infinite alternate;
 }
 .dark .wallpaper {
-  background-color: #14121c;
+  background-color: #0b1b2e;
   background-image:
-    radial-gradient(55% 50% at 12% 8%, color-mix(in srgb, var(--school-primary) 55%, #0b0a12) 0%, transparent 70%),
-    radial-gradient(48% 45% at 88% 12%, #6b3a2a 0%, transparent 70%),
-    radial-gradient(52% 55% at 78% 92%, #223d78 0%, transparent 72%),
-    radial-gradient(42% 42% at 8% 90%, #5a2447 0%, transparent 70%),
-    linear-gradient(135deg, #181621 0%, #0f0e16 100%);
+    radial-gradient(60% 55% at 15% 8%, rgba(28, 110, 140, 0.55) 0%, transparent 70%),
+    radial-gradient(55% 50% at 90% 18%, rgba(95, 179, 179, 0.22) 0%, transparent 70%),
+    radial-gradient(60% 60% at 80% 95%, rgba(18, 56, 90, 0.8) 0%, transparent 72%),
+    linear-gradient(160deg, #0b1b2e 0%, #0f2a47 55%, #12385a 100%);
 }
-@keyframes drift { from { background-position: 0% 0%, 100% 0%, 100% 100%, 0% 100%, 0 0; } to { background-position: 30% 20%, 70% 25%, 75% 70%, 25% 80%, 0 0; } }
+@keyframes drift { from { background-position: 0% 0%, 100% 0%, 100% 100%, 0 0; } to { background-position: 25% 18%, 75% 22%, 78% 72%, 0 0; } }
 
 .win {
   background: var(--win);
@@ -227,7 +219,7 @@ button { font-family: inherit; }
 }
 
 @media (prefers-reduced-motion: reduce) { .wallpaper { animation: none; } }
-@media print { .wallpaper::before { display: none; } .card, .win { backdrop-filter: none !important; background: #fff !important; } }
+@media print { .card, .win { backdrop-filter: none !important; background: #fff !important; } }
 
 .win .glass { background: color-mix(in srgb, var(--win) 70%, transparent); backdrop-filter: none; -webkit-backdrop-filter: none; }
 .win .card { backdrop-filter: none; -webkit-backdrop-filter: none; background: color-mix(in srgb, var(--card-solid) 55%, transparent); }

@@ -35,7 +35,7 @@ export function AuthFrame({ children, brand, title }: { children: ReactNode; bra
         <div className="mb-5 flex flex-col items-center text-center">
           {brand ? <Monogram text={brand.monogram} color={brand.primary} size={64} /> : <div className="skeleton size-16" />}
           <h1 className="serif-bn mt-3 text-[22px] font-bold leading-tight">{brand ? (lang === "bn" ? brand.nameBn : brand.name) : "ShikkaOS"}</h1>
-          <p className="muted mt-1 text-[13px]">{t(`season.${season}.greet`)}</p>
+          {brand?.id !== "petra" ? <p className="muted mt-1 text-[13px]">{t(`season.${season}.greet`)}</p> : null}
         </div>
         <div className="sheet p-6">
           {title ? <h2 className="mb-4 text-base font-bold">{title}</h2> : null}

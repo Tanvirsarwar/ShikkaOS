@@ -1,12 +1,13 @@
 import type {
   Article, AuditLog, Assignment, Cell, DayMetric, ErrorEvent, Exam, Grading, Invite, Issue, MarkValue, Notice,
-  Notification, Publication, Role, RoutineSlot, ExamSlot, School, Season, Session, Student, StudentResult, SubjectDef, Teacher, ClassSummary,
+  Notification, PaperFile, Publication, Role, RoutineSlot, ExamSlot, School, Season, Session, Student, StudentResult, SubjectDef, Teacher, ClassSummary,
 } from "./contracts";
 
 export type SchoolBrand = { id: string; name: string; nameBn: string; city: string; monogram: string; primary: string };
 
 export interface AuthRepo {
   login(id: string, password: string): Promise<Session>;
+  loginPetra(id: string, password: string): Promise<Session>;
   logout(): Promise<void>;
   session(): Session | null;
   verifyPassword(password: string): Promise<boolean>;
@@ -76,6 +77,21 @@ export interface MarksRepo {
   verify(k: CellKey): Promise<Cell>;
   returnCell(k: CellKey, comment: string): Promise<Cell>;
   importMarks(k: CellKey, values: Record<string, MarkValue>): Promise<Cell>;
+  paper(k: CellKey): Promise<PaperFile | null>;
+  paperKeys(examId: string): Promise<string[]>;
+  savePaper(k: CellKey, file: { name: string; mime: string; size: number; dataUrl: string }): Promise<PaperFile>;
+  removePaper(k: CellKey): Promise<void>;
+}
+
+export type ProfilePatch = { nameBn?: string; email?: string; phone?: string; address?: string; bloodGroup?: string; bio?: string; photo?: string | null };
+export type PersonPatch = ProfilePatch & { name?: string; guardian?: string; guardianPhone?: string; designation?: string };
+export type MyProfile = { role: Role; name: string; nameBn: string; photo: string | null; bio: string; email: string; phone: string; address: string; bloodGroup: string };
+
+export interface ProfileRepo {
+  me(): Promise<MyProfile>;
+  updateMe(patch: ProfilePatch): Promise<MyProfile>;
+  updatePerson(kind: "student" | "teacher", id: string, patch: PersonPatch): Promise<void>;
+  changePassword(current: string, next: string): Promise<void>;
 }
 
 export interface ResultRepo {
@@ -131,7 +147,7 @@ export interface PlatformRepo {
 export type Repos = {
   auth: AuthRepo; school: SchoolRepo; student: StudentRepo; teacher: TeacherRepo; klass: ClassRepo; exam: ExamRepo;
   marks: MarksRepo; result: ResultRepo; magazine: MagazineRepo; notice: NoticeRepo; approval: ApprovalRepo;
-  audit: AuditRepo; platform: PlatformRepo; routine: RoutineRepo;
+  audit: AuditRepo; platform: PlatformRepo; routine: RoutineRepo; profile: ProfileRepo;
 };
 
 export type { Role };

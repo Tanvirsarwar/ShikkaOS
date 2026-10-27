@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { motion, useMotionValue, useSpring, useTransform, type MotionValue } from "motion/react";
 import { repos } from "@/api/factory";
-import { keys, useMut, useNotificationsQ, useSchoolQ } from "@/api/hooks";
+import { keys, useMut, useMyProfileQ, useNotificationsQ, useSchoolQ } from "@/api/hooks";
 import { Avatar, Btn, Monogram, Skeleton, Tip } from "@/components/ui";
 import { fmtDateTime } from "@/lib/dates";
 import { useHydrated, useT } from "@/lib/i18n";
@@ -58,17 +58,18 @@ function UserMenu() {
   const setLocked = useUI((s) => s.setLocked);
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const me = useMyProfileQ();
   if (!session) return null;
   return (
     <div className="relative">
       <button type="button" className="flex items-center gap-2 rounded-md px-1.5 py-0.5 hover:bg-[var(--hover)]" onClick={() => setOpen(!open)} aria-haspopup="menu" aria-expanded={open}>
-        <Avatar name={session.name} size={20} />
+        <Avatar name={session.name} size={20} photo={me.data?.photo} />
         <span className="hidden max-w-[150px] truncate text-[12px] font-medium md:block">{session.name}</span>
       </button>
       {open ? (
         <div role="menu" className="sheet absolute right-0 top-8 z-[9100] w-[200px] p-1.5">
           <Btn variant="ghost" className="w-full justify-start" onClick={() => { setOpen(false); setLocked(true); }}><Lock size={14} />{t("user.lock")}</Btn>
-          <Btn variant="ghost" className="w-full justify-start" onClick={() => { void repos.auth.logout().then(() => { setSession(null); router.replace("/login"); }); }}><LogOut size={14} />{t("user.logout")}</Btn>
+          <Btn variant="ghost" className="w-full justify-start" onClick={() => { void repos.auth.logout().then(() => { setSession(null); router.replace(session.role === "petra" ? "/petra-console/" : "/login/"); }); }}><LogOut size={14} />{t("user.logout")}</Btn>
         </div>
       ) : null}
     </div>

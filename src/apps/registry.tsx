@@ -29,7 +29,7 @@ export const APPS: AppDef[] = [
   { id: "marks", icon: SquarePen, color: "#c27a1a", roles: ["teacher"], Component: load(() => import("./marks/MarksEntry")), size: [1060, 660] },
   { id: "roster", icon: Users, color: "#4f46e5", roles: ["teacher"], Component: load(() => import("./roster/Roster")), size: [860, 580] },
   { id: "faculty", icon: Contact, color: "#0f8a8a", roles: ["teacher", "student"], Component: load(() => import("./faculty/Faculty")), size: [900, 580] },
-  { id: "profile", icon: UserRound, color: "#64748b", roles: ["teacher", "student"], Component: load(() => import("./profile/Profile")), size: [620, 520] },
+  { id: "profile", icon: UserRound, color: "#64748b", roles: ["registrar", "teacher", "student"], Component: load(() => import("./profile/Profile")), size: [620, 520] },
 
   { id: "myresults", icon: Award, color: "#c27a1a", roles: ["student"], Component: load(() => import("./myresults/MyResults")), size: [980, 640] },
 

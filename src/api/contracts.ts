@@ -30,6 +30,7 @@ export const UserSchema = z.object({
   refId: z.string().nullable(),
   status: z.enum(["active", "pending", "disabled"]),
   mustReset: z.boolean(),
+  photo: z.string().optional(),
 });
 export type User = z.infer<typeof UserSchema>;
 
@@ -55,6 +56,11 @@ export const StudentSchema = z.object({
   guardianPhone: z.string(),
   admission: z.string(),
   status: z.enum(["active", "pending", "unclaimed"]),
+  photo: z.string().optional(),
+  bio: z.string().optional(),
+  phone: z.string().optional(),
+  address: z.string().optional(),
+  bloodGroup: z.string().optional(),
 });
 export type Student = z.infer<typeof StudentSchema>;
 
@@ -71,6 +77,8 @@ export const TeacherSchema = z.object({
   designation: z.string(),
   assignments: z.array(AssignmentSchema),
   status: z.enum(["active", "invited"]),
+  photo: z.string().optional(),
+  bio: z.string().optional(),
 });
 export type Teacher = z.infer<typeof TeacherSchema>;
 
@@ -125,6 +133,22 @@ export const CellSchema = z.object({
   locked: z.boolean(),
 });
 export type Cell = z.infer<typeof CellSchema>;
+
+export const PaperFileSchema = z.object({
+  id: z.string(),
+  schoolId: z.string(),
+  examId: z.string(),
+  classNo: z.number(),
+  section: z.string(),
+  subject: z.string(),
+  name: z.string(),
+  mime: z.string(),
+  size: z.number(),
+  dataUrl: z.string(),
+  uploadedBy: z.string(),
+  at: z.string(),
+});
+export type PaperFile = z.infer<typeof PaperFileSchema>;
 
 export const PublicationSchema = z.object({
   schoolId: z.string(),

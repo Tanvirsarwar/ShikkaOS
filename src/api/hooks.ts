@@ -12,6 +12,9 @@ export const keys = {
   subjects: ["subjects"] as const,
   exams: ["exams"] as const,
   routine: ["routine"] as const,
+  profile: ["profile"] as const,
+  paper: (k: string) => ["paper", k] as const,
+  paperKeys: (examId: string) => ["paperKeys", examId] as const,
   examSlots: (examId: string) => ["examSlots", examId] as const,
   grading: ["grading"] as const,
   matrix: (e: string) => ["matrix", e] as const,
@@ -75,3 +78,9 @@ export const RESULT_KEYS: QueryKey[] = [["matrix"], ["cell"], ["myCells"], keys.
 
 export const useRoutineQ = () => useQuery({ queryKey: keys.routine, queryFn: () => repos.routine.list() });
 export const useExamSlotsQ = (examId: string) => useQuery({ queryKey: keys.examSlots(examId), queryFn: () => repos.routine.examSlots(examId), enabled: !!examId });
+
+export const useMyProfileQ = () => {
+  const role = useUI((s) => s.session?.role);
+  return useQuery({ queryKey: keys.profile, queryFn: () => repos.profile.me(), enabled: !!role && role !== "petra" });
+};
+export const usePaperKeysQ = (examId: string, enabled = true) => useQuery({ queryKey: keys.paperKeys(examId), queryFn: () => repos.marks.paperKeys(examId), enabled: !!examId && enabled });

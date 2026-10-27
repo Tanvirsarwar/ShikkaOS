@@ -373,7 +373,6 @@ export const DEMO_ACCOUNTS = [
   { role: "registrar" as const, id: "registrar@gcms.edu.bd", password: "registrar123" },
   { role: "teacher" as const, id: "01711000005", password: "teacher123" },
   { role: "student" as const, id: RICH_STUDENT_ID, password: "student123" },
-  { role: "petra" as const, id: "admin@petra.dev", password: "petra123" },
 ];
 
 export type { User };

@@ -35,7 +35,7 @@ export default function Approvals() {
           signups.isLoading ? <SkeletonRows /> : signups.isError ? <ErrorBox error={signups.error} /> : (signups.data ?? []).length === 0 ? <Empty title={t("ap.none")} hint={t("ap.none.hint")} icon={<ShieldCheck size={22} />} /> : (
             <ul className="grid gap-2">{(signups.data ?? []).map((s) => (
               <li key={s.id} className="card flex flex-wrap items-center gap-3 p-3">
-                <Avatar name={s.name} size={36} />
+                <Avatar name={s.name} size={36} photo={s.photo} />
                 <div className="min-w-0 flex-1"><div className="font-bold">{lang === "bn" ? s.nameBn : s.name}</div><div className="muted text-[12px]">{s.studentId} · {t("rc.class", { c: s.classNo, s: s.section })} · {t("col.roll")} {s.roll}</div><div className="faint text-[12px]">{t("ap.roster.match")}</div></div>
                 <Btn variant="primary" size="sm" disabled={approve.isPending} onClick={() => approve.mutate(s.id)}><Check size={13} />{t("ap.approve")}</Btn>
                 <Btn size="sm" onClick={() => { setRej(s); setReason(""); }}><X size={13} />{t("ap.reject")}</Btn>

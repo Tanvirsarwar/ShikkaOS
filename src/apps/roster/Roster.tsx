@@ -24,7 +24,7 @@ export default function Roster() {
       </div>
       <div className="scroll-thin min-h-0 flex-1 overflow-auto p-3">
         <table className="table"><thead><tr><th>{t("col.roll")}</th><th>{t("col.name")}</th><th>{t("col.studentid")}</th><th>{t("col.guardian")}</th></tr></thead>
-          <tbody>{list.map((x) => <tr key={x.id}><td>{x.roll}</td><td><span className="flex items-center gap-2"><Avatar name={x.name} size={24} />{lang === "bn" ? x.nameBn : x.name}</span></td><td>{x.studentId}</td><td>{x.guardian}</td></tr>)}</tbody></table>
+          <tbody>{list.map((x) => <tr key={x.id}><td>{x.roll}</td><td><span className="flex items-center gap-2"><Avatar name={x.name} size={24} photo={x.photo} />{lang === "bn" ? x.nameBn : x.name}</span></td><td>{x.studentId}</td><td>{x.guardian}</td></tr>)}</tbody></table>
       </div>
     </div>
   );
