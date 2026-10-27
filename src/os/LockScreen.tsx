@@ -1,0 +1,35 @@
+"use client";
+import { Lock } from "lucide-react";
+import { useState } from "react";
+import { repos } from "@/api/factory";
+import { Avatar, Btn, Field } from "@/components/ui";
+import { useT } from "@/lib/i18n";
+import { useUI } from "@/store/ui";
+
+export function LockScreen() {
+  const { t } = useT();
+  const session = useUI((s) => s.session);
+  const setLocked = useUI((s) => s.setLocked);
+  const touch = useUI((s) => s.touch);
+  const [pw, setPw] = useState("");
+  const [err, setErr] = useState<string | null>(null);
+  return (
+    <div className="nakshi fixed inset-0 z-[10000] grid place-items-center px-4" role="dialog" aria-modal="true" aria-label={t("lock.title")}>
+      <form
+        className="card flex w-full max-w-[340px] flex-col items-center gap-3 p-6"
+        onSubmit={(e) => {
+          e.preventDefault();
+          repos.auth.verifyPassword(pw).then((ok) => {
+            if (ok) { setPw(""); setErr(null); touch(); setLocked(false); } else setErr(t("lock.wrong"));
+          }).catch(() => setErr(t("error.generic")));
+        }}
+      >
+        <Avatar name={session?.name ?? "?"} size={56} />
+        <div className="font-bold">{session?.name}</div>
+        <div className="muted flex items-center gap-1 text-[13px]"><Lock size={13} />{t("lock.title")}</div>
+        <div className="w-full"><Field label={t("auth.password")} error={err ?? undefined}><input className="input" type="password" autoFocus value={pw} onChange={(e) => setPw(e.target.value)} /></Field></div>
+        <Btn variant="primary" className="w-full" type="submit">{t("lock.unlock")}</Btn>
+      </form>
+    </div>
+  );
+}

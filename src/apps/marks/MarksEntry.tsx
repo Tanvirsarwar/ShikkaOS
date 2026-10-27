@@ -1,0 +1,157 @@
+"use client";
+import { useQueryClient } from "@tanstack/react-query";
+import { Check, Lock, Send } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { Cell, MarkValue } from "@/api/contracts";
+import { repos } from "@/api/factory";
+import { RESULT_KEYS, useExamsQ, useMut, useMyCellsQ, useStudentsQ, useSubjectsQ } from "@/api/hooks";
+import { Btn, Empty, Modal, SkeletonRows } from "@/components/ui";
+import { fmtDateTime } from "@/lib/dates";
+import { useT } from "@/lib/i18n";
+import { cn } from "@/lib/utils";
+import { pickExam } from "@/os/Widgets";
+
+type Parsed = { ok: boolean; v: MarkValue };
+function parse(s: string, full: number): Parsed {
+  const x = s.trim();
+  if (x === "") return { ok: true, v: null };
+  if (/^(ab|absent)$/i.test(x)) return { ok: true, v: "AB" };
+  const n = Number(x);
+  if (Number.isNaN(n) || n < 0 || n > full) return { ok: false, v: null };
+  return { ok: true, v: n };
+}
+
+const sameKey = (a: Cell, b: Cell) => a.classNo === b.classNo && a.section === b.section && a.subject === b.subject;
+
+export default function MarksEntry() {
+  const { t, lang } = useT();
+  const exams = useExamsQ();
+  const [examId, setExamId] = useState("");
+  const exam = exams.data?.find((e) => e.id === examId) ?? pickExam(exams.data);
+  const eid = exam?.id ?? "";
+  const cells = useMyCellsQ(eid);
+  const students = useStudentsQ();
+  const subjects = useSubjectsQ();
+  const [selKey, setSelKey] = useState<Cell | null>(null);
+  const cell = (cells.data ?? []).find((c) => selKey && sameKey(c, selKey)) ?? (cells.data ?? [])[0];
+
+  if (cells.isLoading || exams.isLoading) return <SkeletonRows rows={6} />;
+  if (!cell) return <Empty title={t("me.none")} hint={t("me.none.hint")} />;
+
+  return (
+    <div className="flex h-full min-h-[420px] flex-col sm:flex-row">
+      <aside className="scroll-thin max-h-[40%] shrink-0 overflow-auto border-b p-3 sm:max-h-none sm:w-[250px] sm:border-b-0 sm:border-r" style={{ borderColor: "var(--line)" }}>
+        <select className="select mb-3" aria-label={t("rc.exam")} value={eid} onChange={(e) => { setExamId(e.target.value); setSelKey(null); }}>
+          {(exams.data ?? []).map((e) => <option key={e.id} value={e.id}>{lang === "bn" ? e.nameBn : e.name}</option>)}
+        </select>
+        <ul className="grid gap-1.5">
+          {(cells.data ?? []).map((c) => {
+            const active = sameKey(c, cell);
+            return (
+              <li key={`${c.classNo}${c.section}${c.subject}`}>
+                <button type="button" onClick={() => setSelKey(c)} className={cn("hair w-full p-2 text-left")} style={active ? { borderColor: "var(--accent)", outline: "2px solid var(--accent)" } : undefined}>
+                  <div className="text-[13px] font-bold">{t("rc.class", { c: c.classNo, s: c.section })} · {c.subject}</div>
+                  <div className="faint text-[11px]">{t(`state.${c.state}`)}{c.returnComment ? ` · ${t("rc.returned")}` : ""}</div>
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </aside>
+      <div className="min-w-0 flex-1">
+        <Grid key={`${eid}-${cell.classNo}-${cell.section}-${cell.subject}`} cell={cell} examId={eid}
+          roster={(students.data ?? []).filter((s) => s.classNo === cell.classNo && s.section === cell.section).sort((a, b) => a.roll - b.roll)}
+          full={subjects.data?.find((d) => d.classNo === cell.classNo && d.subject === cell.subject)?.full ?? 100} />
+      </div>
+    </div>
+  );
+}
+
+function Grid({ cell, examId, roster, full }: { cell: Cell; examId: string; roster: { id: string; roll: number; name: string }[]; full: number }) {
+  const { t, lang } = useT();
+  const qc = useQueryClient();
+  const [vals, setVals] = useState<Record<string, string>>(() => Object.fromEntries(roster.map((s) => [s.id, String(cell.marks[s.id] ?? "")])));
+  const [saved, setSaved] = useState<string | null>(null);
+  const [confirm, setConfirm] = useState(false);
+  const refs = useRef<(HTMLInputElement | null)[]>([]);
+  const dirty = useRef(false);
+  const locked = cell.locked;
+  const k = useMemo(() => ({ examId, classNo: cell.classNo, section: cell.section, subject: cell.subject }), [examId, cell.classNo, cell.section, cell.subject]);
+
+  const parsed = roster.map((s) => parse(vals[s.id] ?? "", full));
+  const bad = parsed.filter((p) => !p.ok).length;
+  const filled = parsed.filter((p) => p.ok && p.v !== null).length;
+  const toMarks = () => Object.fromEntries(roster.map((s, i) => [s.id, (parsed[i] as Parsed).v]).filter(([, v]) => v !== null)) as Record<string, MarkValue>;
+
+  useEffect(() => {
+    if (locked || !dirty.current) return;
+    const h = setTimeout(() => {
+      repos.marks.saveDraft(k, toMarks()).then((c) => { dirty.current = false; setSaved(c.updatedAt); void qc.invalidateQueries({ queryKey: ["myCells"] }); }).catch(() => undefined);
+    }, 1200);
+    return () => clearTimeout(h);
+  }); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const submit = useMut(() => repos.marks.submit(k, toMarks()), [...RESULT_KEYS], t("me.submitted"));
+  const set = (id: string, v: string) => { dirty.current = true; setVals((p) => ({ ...p, [id]: v })); };
+  const focus = (i: number) => { const el = refs.current[i]; if (el) { el.focus(); el.select(); } };
+
+  function onPaste(e: React.ClipboardEvent, start: number) {
+    const text = e.clipboardData.getData("text");
+    if (!text.includes("\n") && !text.includes("\t")) return;
+    e.preventDefault();
+    const lines = text.replace(/\r/g, "").split("\n").filter((l) => l.length > 0);
+    const next = { ...vals };
+    lines.forEach((l, j) => {
+      const s = roster[start + j];
+      if (s) next[s.id] = (l.split("\t").pop() ?? "").trim();
+    });
+    dirty.current = true;
+    setVals(next);
+  }
+
+  return (
+    <div className="flex h-full flex-col">
+      <div className="flex flex-wrap items-center gap-2 border-b p-3" style={{ borderColor: "var(--line)" }}>
+        <div className="font-bold">{t("rc.class", { c: cell.classNo, s: cell.section })} · {cell.subject}</div>
+        <span className="chip">{t(`state.${cell.state}`)}</span>
+        {locked ? <span className="chip" style={{ color: "var(--warn)" }}><Lock size={11} />{t("me.locked")}</span> : null}
+        <div className="flex-1" />
+        <span className="faint text-[12px]">{saved ? <><Check size={12} className="inline" /> {t("me.saved")} {fmtDateTime(saved, lang)}</> : null}</span>
+        <Btn variant="primary" disabled={locked || bad > 0 || filled !== roster.length || submit.isPending} onClick={() => setConfirm(true)}><Send size={14} />{t("me.submit")}</Btn>
+      </div>
+      {cell.returnComment ? <div className="mx-3 mt-3 rounded-lg border p-2 text-[13px]" style={{ borderColor: "var(--warn)", color: "var(--warn)" }}>{t("rc.returned")}: {cell.returnComment}</div> : null}
+      <div className="faint px-3 pt-2 text-[12px]">{t("me.tip", { full })}</div>
+      <div className="scroll-thin min-h-0 flex-1 overflow-auto p-3">
+        <table className="table cell-grid" role="grid" aria-label={t("app.marks")}>
+          <thead><tr><th style={{ width: 64 }}>{t("col.roll")}</th><th>{t("col.name")}</th><th style={{ width: 140 }} className="text-right">{t("col.marks")} /{full}</th></tr></thead>
+          <tbody>
+            {roster.map((s, i) => {
+              const p = parsed[i] as Parsed;
+              return (
+                <tr key={s.id}>
+                  <td>{s.roll}</td><td>{s.name}</td>
+                  <td className="!p-0" style={{ height: 34, background: !p.ok ? "color-mix(in srgb, var(--danger) 14%, transparent)" : undefined }}>
+                    <input ref={(el) => { refs.current[i] = el; }} aria-label={`${s.name} ${t("col.marks")}`} aria-invalid={!p.ok} disabled={locked} value={vals[s.id] ?? ""} inputMode="decimal"
+                      onChange={(e) => set(s.id, e.target.value)} onPaste={(e) => onPaste(e, i)}
+                      onKeyDown={(e) => {
+                        if (e.key === "ArrowDown" || e.key === "Enter") { e.preventDefault(); focus(Math.min(roster.length - 1, i + 1)); }
+                        else if (e.key === "ArrowUp") { e.preventDefault(); focus(Math.max(0, i - 1)); }
+                      }} />
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <div className="flex items-center gap-3 border-t px-3 py-2 text-[12px]" style={{ borderColor: "var(--line)" }}>
+        <span>{t("me.filled", { a: filled, b: roster.length })}</span>
+        {bad ? <span style={{ color: "var(--danger)" }}>{t("me.invalid", { n: bad, full })}</span> : null}
+      </div>
+      <Modal open={confirm} onClose={() => setConfirm(false)} title={t("me.confirm.title")}
+        footer={<><Btn onClick={() => setConfirm(false)}>{t("cancel")}</Btn><Btn variant="primary" disabled={submit.isPending} onClick={() => void submit.mutateAsync(undefined).then(() => { setConfirm(false); void qc.invalidateQueries({ queryKey: ["myCells"] }); }).catch(() => undefined)}>{t("me.submit")}</Btn></>}>
+        <p className="text-[13px]">{t("me.confirm.body", { n: roster.length, c: cell.classNo, s: cell.section, sub: cell.subject })}</p>
+      </Modal>
+    </div>
+  );
+}
