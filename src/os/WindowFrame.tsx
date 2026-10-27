@@ -1,13 +1,12 @@
 "use client";
 import { AnimatePresence, motion } from "motion/react";
-import { Maximize2, Minimize2, Minus, X } from "lucide-react";
+import { Maximize2, Minus, Plus, X } from "lucide-react";
 import { useRef, type PointerEvent as RPE, type ReactNode } from "react";
-import { Btn } from "@/components/ui";
 import { useT } from "@/lib/i18n";
 import { useUI, type WinState } from "@/store/ui";
 import type { AppDef } from "@/apps/registry";
 
-const TOP = 48;
+const TOP = 32;
 const DOCK = 88;
 
 function clampWin(w: WinState, vw: number, vh: number): Partial<WinState> {
@@ -26,7 +25,6 @@ export function WindowFrame({ app, win, children }: { app: AppDef; win: WinState
   const { focusApp, moveApp, closeApp, toggleMin, toggleMax } = useUI();
   const drag = useRef<{ px: number; py: number; x: number; y: number } | null>(null);
   const rs = useRef<{ px: number; py: number; w: number; h: number; mode: "r" | "b" | "rb" } | null>(null);
-  const Icon = app.icon;
   const topZ = useUI((s) => Math.max(0, ...Object.values(s.windows).filter((w) => w.open && !w.min).map((w) => w.z)));
 
   const onDragStart = (e: RPE<HTMLDivElement>) => {
@@ -73,21 +71,22 @@ export function WindowFrame({ app, win, children }: { app: AppDef; win: WinState
       {win.open ? (
         <motion.section
           key={app.id}
-          initial={{ opacity: 0, scale: 0.96, y: 10 }}
-          animate={{ opacity: win.min ? 0 : 1, scale: win.min ? 0.9 : 1, y: win.min ? 30 : 0 }}
+          initial={{ opacity: 0, scale: 0.94, y: 14 }}
+          animate={{ opacity: win.min ? 0 : 1, scale: win.min ? 0.25 : 1, y: win.min ? 360 : 0 }}
           exit={{ opacity: 0, scale: 0.96 }}
-          transition={{ duration: 0.16 }}
+          transition={{ type: "spring", stiffness: 420, damping: 34, mass: 0.8 }}
           className={`win absolute flex flex-col overflow-hidden ${win.z >= topZ ? "win-focus" : ""}`}
-          style={{ ...style, display: win.min ? "none" : "flex", ["--accent" as string]: app.color }}
+          style={{ ...style, transformOrigin: "50% 100%", display: win.min ? "none" : "flex", ["--accent" as string]: app.color }}
           onPointerDown={() => focusApp(app.id)}
           aria-label={t(`app.${app.id}`)}
         >
-          <div className="glass flex h-10 shrink-0 cursor-grab select-none items-center gap-2 border-x-0 border-t-0 px-3 active:cursor-grabbing" onPointerDown={onDragStart} onPointerMove={onDragMove} onPointerUp={onDragEnd} onDoubleClick={() => toggleMax(app.id)}>
-            <span className="grid size-6 place-items-center rounded-md text-white" style={{ background: app.color }}><Icon size={14} /></span>
-            <span className="flex-1 truncate text-[13px] font-bold">{t(`app.${app.id}`)}</span>
-            <Btn variant="icon" size="sm" aria-label={t("win.minimize")} onClick={() => toggleMin(app.id)}><Minus size={14} /></Btn>
-            <Btn variant="icon" size="sm" aria-label={t("win.maximize")} onClick={() => toggleMax(app.id)}>{win.max ? <Minimize2 size={13} /> : <Maximize2 size={13} />}</Btn>
-            <Btn variant="icon" size="sm" aria-label={t("win.close")} onClick={() => closeApp(app.id)}><X size={14} /></Btn>
+          <div className="relative flex h-11 shrink-0 cursor-default select-none items-center px-3.5" style={{ background: "color-mix(in srgb, var(--win) 60%, transparent)", boxShadow: "0 0.5px 0 var(--line)" }} onPointerDown={onDragStart} onPointerMove={onDragMove} onPointerUp={onDragEnd} onDoubleClick={() => toggleMax(app.id)}>
+            <div className="traffic-group" onPointerDown={(e) => e.stopPropagation()}>
+              <button type="button" className="traffic close" aria-label={t("win.close")} onClick={() => closeApp(app.id)}><X /></button>
+              <button type="button" className="traffic min" aria-label={t("win.minimize")} onClick={() => toggleMin(app.id)}><Minus /></button>
+              <button type="button" className="traffic max" aria-label={t("win.maximize")} onClick={() => toggleMax(app.id)}>{win.max ? <Maximize2 /> : <Plus />}</button>
+            </div>
+            <span className="pointer-events-none absolute inset-x-24 truncate text-center text-[13px] font-semibold" style={{ color: win.z >= topZ ? "var(--ink)" : "var(--ink-3)" }}>{t(`app.${app.id}`)}</span>
           </div>
           <div className="scroll-thin min-h-0 flex-1 overflow-auto">{children}</div>
           {!win.max ? (

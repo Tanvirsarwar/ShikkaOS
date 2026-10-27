@@ -16,7 +16,7 @@ export function Tip({ label, children }: { label: string; children: ReactNode })
       <Tooltip.Root>
         <Tooltip.Trigger asChild>{children}</Tooltip.Trigger>
         <Tooltip.Portal>
-          <Tooltip.Content sideOffset={6} className="glass z-[9999] max-w-[260px] rounded-lg px-2.5 py-1.5 text-xs" style={{ color: "var(--ink)" }}>
+          <Tooltip.Content sideOffset={6} className="sheet z-[9999] max-w-[260px] !rounded-lg px-2.5 py-1 text-xs" style={{ color: "var(--ink)" }}>
             {label}
           </Tooltip.Content>
         </Tooltip.Portal>
@@ -38,11 +38,11 @@ export function Modal({ open, onClose, title, children, width = 520, footer }: {
   return (
     <Dialog.Root open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-[9000] bg-black/40" />
-        <Dialog.Content aria-describedby={undefined} className="card fixed left-1/2 top-1/2 z-[9001] flex max-h-[88vh] -translate-x-1/2 -translate-y-1/2 flex-col" style={{ width: `min(${width}px, 94vw)`, boxShadow: "var(--shadow-lg)" }}>
-          <div className="flex items-center justify-between px-5 pt-4 pb-2">
-            <Dialog.Title className="text-base font-bold">{title}</Dialog.Title>
-            <Dialog.Close asChild><Btn variant="icon" aria-label="Close"><X size={16} /></Btn></Dialog.Close>
+        <Dialog.Overlay className="fixed inset-0 z-[9000] bg-black/30 backdrop-blur-[3px]" />
+        <Dialog.Content aria-describedby={undefined} className="sheet fixed left-1/2 top-1/2 z-[9001] flex max-h-[88vh] -translate-x-1/2 -translate-y-1/2 flex-col" style={{ width: `min(${width}px, 94vw)` }}>
+          <div className="flex items-center justify-between px-5 pb-2 pt-4">
+            <Dialog.Title className="text-[15px] font-semibold">{title}</Dialog.Title>
+            <Dialog.Close asChild><Btn variant="icon" size="sm" aria-label="Close"><X size={14} /></Btn></Dialog.Close>
           </div>
           <div className="scroll-thin overflow-auto px-5 pb-4">{children}</div>
           {footer ? <div className="flex justify-end gap-2 border-t px-5 py-3" style={{ borderColor: "var(--line)" }}>{footer}</div> : null}
@@ -57,7 +57,7 @@ export function Drawer({ open, onClose, title, children, width = 420 }: { open: 
     <Dialog.Root open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-[9000] bg-black/30" />
-        <Dialog.Content aria-describedby={undefined} className="card fixed right-0 top-0 z-[9001] flex h-full flex-col rounded-r-none" style={{ width: `min(${width}px, 100vw)`, boxShadow: "var(--shadow-lg)" }}>
+        <Dialog.Content aria-describedby={undefined} className="sheet fixed right-0 top-0 z-[9001] flex h-full flex-col rounded-r-none" style={{ width: `min(${width}px, 100vw)` }}>
           <div className="flex items-center justify-between px-5 py-4">
             <Dialog.Title className="text-base font-bold">{title}</Dialog.Title>
             <Dialog.Close asChild><Btn variant="icon" aria-label="Close"><X size={16} /></Btn></Dialog.Close>

@@ -1,5 +1,5 @@
 "use client";
-import { Award, Clock, Lock, Sparkles } from "lucide-react";
+import { Award, Clock, Lock, Trophy } from "lucide-react";
 import { useEffect, useState } from "react";
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, XAxis, YAxis } from "recharts";
 import { useMyExamsQ, useMyHistoryQ } from "@/api/hooks";
@@ -30,7 +30,7 @@ export default function MyResults() {
               {state === "published" ? (
                 <div className="mt-3 flex items-end justify-between gap-2">
                   <div><div className="text-3xl font-extrabold" style={{ color: "var(--accent)" }}>{h ? n(h.result.gpa.toFixed(2)) : "—"}</div><div className="faint text-[12px]">{h ? `${h.result.passed ? h.result.grade : t("reveal.failed")} · ${t("reveal.position")} ${n(h.result.position)}/${n(h.result.classSize)}` : ""}</div></div>
-                  <Btn variant="primary" onClick={() => setOpen(exam.id)}><Sparkles size={14} />{t("mr.open")}</Btn>
+                  <Btn variant="primary" onClick={() => setOpen(exam.id)}><Trophy size={14} />{t("mr.open")}</Btn>
                 </div>
               ) : state === "scheduled" && at ? (
                 <div className="mt-3"><div className="muted flex items-center gap-1.5 text-[13px]"><Clock size={13} />{t("widget.result.coming", { time: fmtDateTime(at, lang) })}</div><div className="mt-1 font-mono text-2xl font-extrabold tabular-nums">{countdown(at, now)}</div></div>

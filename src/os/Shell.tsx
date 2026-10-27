@@ -3,6 +3,7 @@ import { ArrowLeft, Bell, Languages, Lock, LogOut, Moon, Search, Sun } from "luc
 import { useTheme } from "next-themes";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { motion, useMotionValue, useSpring, useTransform, type MotionValue } from "motion/react";
 import { repos } from "@/api/factory";
 import { keys, useMut, useNotificationsQ, useSchoolQ } from "@/api/hooks";
 import { Avatar, Btn, Monogram, Skeleton, Tip } from "@/components/ui";
@@ -11,6 +12,7 @@ import { useHydrated, useT } from "@/lib/i18n";
 import { SEASON_ACCENT } from "@/lib/season";
 import { useUI } from "@/store/ui";
 import { appById, appsFor } from "@/apps/registry";
+import { AppIcon } from "./AppIcon";
 import { LockScreen } from "./LockScreen";
 import { Spotlight } from "./Spotlight";
 import { WindowFrame } from "./WindowFrame";
@@ -36,7 +38,7 @@ function NotificationCenter() {
         </Btn>
       </Tip>
       {open ? (
-        <div className="card absolute right-0 top-10 z-[9100] w-[320px] max-w-[90vw] p-2" style={{ boxShadow: "var(--shadow-lg)" }}>
+        <div className="sheet absolute right-0 top-8 z-[9100] w-[320px] max-w-[90vw] p-2">
           <div className="flex items-center justify-between px-2 py-1"><span className="text-[13px] font-bold">{t("notif.title")}</span><Btn size="sm" variant="ghost" onClick={() => clear.mutate(undefined)}>{t("notif.clear")}</Btn></div>
           <ul className="scroll-thin max-h-[320px] overflow-auto">
             {(data ?? []).length === 0 ? <li className="faint p-4 text-center text-[13px]">{t("notif.empty")}</li> : (data ?? []).map((n) => (
@@ -59,12 +61,12 @@ function UserMenu() {
   if (!session) return null;
   return (
     <div className="relative">
-      <button type="button" className="flex items-center gap-2 rounded-xl px-1.5 py-1 hover:bg-[var(--paper-2)]" onClick={() => setOpen(!open)} aria-haspopup="menu" aria-expanded={open}>
-        <Avatar name={session.name} size={28} />
-        <span className="hidden text-left text-[12px] leading-tight md:block"><span className="block max-w-[140px] truncate font-bold">{session.name}</span><span className="faint">{t(`role.${session.role}`)}</span></span>
+      <button type="button" className="flex items-center gap-2 rounded-md px-1.5 py-0.5 hover:bg-[var(--hover)]" onClick={() => setOpen(!open)} aria-haspopup="menu" aria-expanded={open}>
+        <Avatar name={session.name} size={20} />
+        <span className="hidden max-w-[150px] truncate text-[12px] font-medium md:block">{session.name}</span>
       </button>
       {open ? (
-        <div role="menu" className="card absolute right-0 top-11 z-[9100] w-[200px] p-1.5" style={{ boxShadow: "var(--shadow-lg)" }}>
+        <div role="menu" className="sheet absolute right-0 top-8 z-[9100] w-[200px] p-1.5">
           <Btn variant="ghost" className="w-full justify-start" onClick={() => { setOpen(false); setLocked(true); }}><Lock size={14} />{t("user.lock")}</Btn>
           <Btn variant="ghost" className="w-full justify-start" onClick={() => { void repos.auth.logout().then(() => { setSession(null); router.replace("/login"); }); }}><LogOut size={14} />{t("user.logout")}</Btn>
         </div>
@@ -73,29 +75,65 @@ function UserMenu() {
   );
 }
 
+function Clock() {
+  const { lang } = useT();
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => { const id = setInterval(() => setNow(Date.now()), 15_000); return () => clearInterval(id); }, []);
+  const d = new Date(now);
+  const day = new Intl.DateTimeFormat(lang === "bn" ? "bn-BD" : "en-GB", { timeZone: "Asia/Dhaka", weekday: "short", day: "numeric", month: "short" }).format(d);
+  const time = new Intl.DateTimeFormat(lang === "bn" ? "bn-BD" : "en-US", { timeZone: "Asia/Dhaka", hour: "numeric", minute: "2-digit" }).format(d);
+  return <span className="hidden whitespace-nowrap px-1 text-[12.5px] font-medium tabular-nums sm:inline">{day}  {time}</span>;
+}
+
 function TopBar({ mobile }: { mobile: boolean }) {
   const { t, lang } = useT();
   const { data: school } = useSchoolQ();
-  const season = useSeason();
   const { resolvedTheme, setTheme } = useTheme();
   const setLang = useUI((s) => s.setLang);
   const setSpot = useUI((s) => s.setSpotlight);
   const role = useUI((s) => s.session?.role);
+  const windows = useUI((s) => s.windows);
+  const front = Object.entries(windows).filter(([, w]) => w.open && !w.min).sort((a, b) => b[1].z - a[1].z)[0];
+  const title = front && !mobile ? t(`app.${front[0]}`) : role === "petra" ? "Petra Console" : school ? (lang === "bn" ? school.nameBn : school.name) : "…";
   return (
-    <header className="glass relative z-[9050] flex h-12 shrink-0 items-center gap-2 border-x-0 border-t-0 px-3">
-      {school ? <Monogram text={school.monogram} color={school.primary} size={28} /> : role === "petra" ? <Monogram text="PE" color="#1f1b16" size={28} /> : <Skeleton w={28} h={28} />}
-      <div className="min-w-0 flex-1 md:flex-none">
-        <div className="serif-bn truncate text-[14px] font-bold leading-tight">{role === "petra" ? "Petra Console" : school ? (lang === "bn" ? school.nameBn : school.name) : "…"}</div>
-      </div>
-      {role !== "petra" ? <span className="chip hidden sm:inline-flex" style={{ color: SEASON_ACCENT[season], borderColor: SEASON_ACCENT[season] }}>{t(`season.${season}`)}</span> : null}
+    <header className="menubar relative z-[9050] flex h-8 shrink-0 items-center gap-1 px-3">
+      {school ? <Monogram text={school.monogram} color={school.primary} size={18} /> : role === "petra" ? <Monogram text="PE" color="#1f1b16" size={18} /> : <Skeleton w={18} h={18} />}
+      <span className="serif-bn ml-1.5 max-w-[46vw] truncate text-[13px] font-bold">{title}</span>
       <div className="flex-1" />
-      <Btn size="sm" className="hidden md:inline-flex" onClick={() => setSpot(true)}><Search size={14} />{t("spot.trigger")}<kbd className="faint ml-2 text-[11px]">Ctrl K</kbd></Btn>
-      {mobile ? <Btn variant="icon" onClick={() => setSpot(true)} aria-label={t("spot.trigger")}><Search size={16} /></Btn> : null}
+      <Btn variant="icon" size="sm" onClick={() => setSpot(true)} aria-label={t("spot.trigger")}><Search size={14} /></Btn>
       <NotificationCenter />
-      <Btn variant="icon" onClick={() => setLang(lang === "en" ? "bn" : "en")} aria-label={t("toggle.lang")}><Languages size={16} /></Btn>
-      <Btn variant="icon" onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")} aria-label={t("toggle.theme")}>{resolvedTheme === "dark" ? <Sun size={16} /> : <Moon size={16} />}</Btn>
+      <Btn variant="icon" size="sm" onClick={() => setLang(lang === "en" ? "bn" : "en")} aria-label={t("toggle.lang")}><Languages size={14} /></Btn>
+      <Btn variant="icon" size="sm" onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")} aria-label={t("toggle.theme")}>{resolvedTheme === "dark" ? <Sun size={14} /> : <Moon size={14} />}</Btn>
+      <Clock />
       <UserMenu />
     </header>
+  );
+}
+
+function DockItem({ app, mouseX, running, onClick, label }: { app: ReturnType<typeof appsFor>[number]; mouseX: MotionValue<number>; running: boolean; onClick: () => void; label: string }) {
+  const ref = useRef<HTMLButtonElement>(null);
+  const distance = useTransform(mouseX, (v) => { const b = ref.current?.getBoundingClientRect(); return b ? v - b.x - b.width / 2 : Infinity; });
+  const size = useSpring(useTransform(distance, [-140, -70, 0, 70, 140], [48, 62, 82, 62, 48]), { mass: 0.1, stiffness: 190, damping: 14 });
+  return (
+    <div className="flex flex-col items-center gap-1">
+      <Tip label={label}>
+        <motion.button ref={ref} type="button" aria-label={label} style={{ width: size, height: size }} whileTap={{ scale: 0.9 }} onClick={onClick} className="grid place-items-center">
+          <motion.span style={{ width: size, height: size }} className="grid place-items-center">
+            <AppIconFluid icon={app.icon} color={app.color} size={size} />
+          </motion.span>
+        </motion.button>
+      </Tip>
+      <span className="dock-dot" style={{ opacity: running ? 1 : 0 }} />
+    </div>
+  );
+}
+
+function AppIconFluid({ icon: Icon, color, size }: { icon: ReturnType<typeof appsFor>[number]["icon"]; color: string; size: MotionValue<number> }) {
+  const glyph = useTransform(size, (v) => Math.round(v * 0.5));
+  return (
+    <motion.span className="app-icon" style={{ width: size, height: size, background: `linear-gradient(180deg, color-mix(in srgb, ${color} 72%, #fff) 0%, ${color} 52%, color-mix(in srgb, ${color} 82%, #000) 100%)` }}>
+      <motion.span style={{ width: glyph, height: glyph }} className="grid place-items-center [&>svg]:size-full"><Icon /></motion.span>
+    </motion.span>
   );
 }
 
@@ -104,24 +142,24 @@ function Dock() {
   const role = useUI((s) => s.session?.role);
   const windows = useUI((s) => s.windows);
   const { toggleMin, focusApp } = useUI();
+  const mouseX = useMotionValue(Infinity);
   const topZ = Math.max(0, ...Object.values(windows).filter((w) => w.open && !w.min).map((w) => w.z));
   if (!role) return null;
   return (
-    <nav className="dock absolute bottom-3 left-1/2 z-[9040] flex -translate-x-1/2 items-end gap-2 rounded-[26px] px-3.5 py-2.5" aria-label={t("dock.label")}>
+    <motion.nav
+      onMouseMove={(e) => mouseX.set(e.clientX)} onMouseLeave={() => mouseX.set(Infinity)}
+      className="dock absolute bottom-3 left-1/2 z-[9040] flex h-[68px] -translate-x-1/2 items-end gap-2.5 rounded-[24px] px-3 pb-2"
+      aria-label={t("dock.label")}
+    >
       {appsFor(role).map((a) => {
         const w = windows[a.id];
         const running = !!w?.open;
         return (
-          <Tip key={a.id} label={t(`app.${a.id}`)}>
-            <button type="button" className="dock-item relative grid size-11 place-items-center rounded-[14px] text-white" style={{ background: a.color, boxShadow: "0 4px 10px rgba(0,0,0,.18)" }} aria-label={t(`app.${a.id}`)}
-              onClick={() => { if (!running) launch(a.id); else if (w && !w.min && w.z === topZ) toggleMin(a.id); else { if (w?.min) toggleMin(a.id); focusApp(a.id); } }}>
-              <a.icon size={21} />
-              {running ? <span className="absolute -bottom-1.5 size-1 rounded-full" style={{ background: "var(--ink)" }} /> : null}
-            </button>
-          </Tip>
+          <DockItem key={a.id} app={a} mouseX={mouseX} running={running} label={t(`app.${a.id}`)}
+            onClick={() => { if (!running) launch(a.id); else if (w && !w.min && w.z === topZ) toggleMin(a.id); else { if (w?.min) toggleMin(a.id); focusApp(a.id); } }} />
         );
       })}
-    </nav>
+    </motion.nav>
   );
 }
 
@@ -135,7 +173,7 @@ function MobileHome() {
       <div className="grid grid-cols-4 gap-4 px-5 pb-6">
         {appsFor(role).map((a) => (
           <button key={a.id} type="button" className="flex flex-col items-center gap-1.5" onClick={() => launch(a.id)}>
-            <span className="grid size-14 place-items-center rounded-2xl text-white" style={{ background: a.color, boxShadow: "var(--shadow)" }}><a.icon size={26} /></span>
+            <AppIcon icon={a.icon} color={a.color} size={58} />
             <span className="text-center text-[11px] font-semibold leading-tight">{t(`app.${a.id}`)}</span>
           </button>
         ))}

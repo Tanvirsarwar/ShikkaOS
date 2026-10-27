@@ -14,9 +14,9 @@ export function LockScreen() {
   const [pw, setPw] = useState("");
   const [err, setErr] = useState<string | null>(null);
   return (
-    <div className="nakshi fixed inset-0 z-[10000] grid place-items-center px-4" role="dialog" aria-modal="true" aria-label={t("lock.title")}>
+    <div className="wallpaper fixed inset-0 z-[10000] grid place-items-center px-4" role="dialog" aria-modal="true" aria-label={t("lock.title")}>
       <form
-        className="card flex w-full max-w-[340px] flex-col items-center gap-3 p-6"
+        className="sheet flex w-full max-w-[340px] flex-col items-center gap-3 p-7"
         onSubmit={(e) => {
           e.preventDefault();
           repos.auth.verifyPassword(pw).then((ok) => {
@@ -24,7 +24,7 @@ export function LockScreen() {
           }).catch(() => setErr(t("error.generic")));
         }}
       >
-        <Avatar name={session?.name ?? "?"} size={56} />
+        <Avatar name={session?.name ?? "?"} size={72} />
         <div className="font-bold">{session?.name}</div>
         <div className="muted flex items-center gap-1 text-[13px]"><Lock size={13} />{t("lock.title")}</div>
         <div className="w-full"><Field label={t("auth.password")} error={err ?? undefined}><input className="input" type="password" autoFocus value={pw} onChange={(e) => setPw(e.target.value)} /></Field></div>

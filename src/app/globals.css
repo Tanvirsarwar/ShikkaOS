@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "@fontsource-variable/inter";
 @import "@fontsource-variable/plus-jakarta-sans";
 @import "@fontsource/hind-siliguri/400.css";
 @import "@fontsource/hind-siliguri/500.css";
@@ -13,13 +14,18 @@
   --paper-2: #efe9db;
   --card: rgba(255, 253, 248, 0.64);
   --card-solid: #fffdf8;
-  --win: rgba(255, 253, 250, 0.93);
+  --win: rgba(255, 253, 250, 0.96);
   --edge: rgba(255, 255, 255, 0.65);
+  --sheet: rgba(250, 248, 255, 0.86);
+  --hover: rgba(20, 16, 40, 0.06);
+  --press: rgba(20, 16, 40, 0.11);
+  --btn-top: rgba(255, 255, 255, 0.95);
+  --btn-bot: rgba(244, 242, 250, 0.9);
   --ink: #1f1b16;
   --ink-2: #5c554a;
   --ink-3: #8a8274;
   --line: rgba(31, 27, 22, 0.12);
-  --shadow: 0 1px 2px rgba(31, 27, 22, 0.05), 0 6px 20px rgba(31, 27, 22, 0.06);
+  --shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(20, 16, 40, 0.06), 0 8px 24px rgba(20, 16, 40, 0.07);
   --shadow-lg: 0 2px 6px rgba(31, 27, 22, 0.08), 0 24px 60px rgba(31, 27, 22, 0.16);
   --school-primary: #2f7a5b;
   --accent: var(--school-primary);
@@ -27,8 +33,8 @@
   --danger: #b42318;
   --warn: #b7791f;
   --ok: #2f7a5b;
-  --radius: 16px;
-  --font-ui: "Plus Jakarta Sans Variable", "Hind Siliguri", system-ui, sans-serif;
+  --radius: 14px;
+  --font-ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter Variable", "Hind Siliguri", system-ui, sans-serif;
   --font-serif: "Noto Serif Bengali", "Plus Jakarta Sans Variable", Georgia, serif;
 }
 
@@ -37,8 +43,13 @@
   --paper-2: #24211d;
   --card: rgba(44, 40, 52, 0.58);
   --card-solid: #2a2722;
-  --win: rgba(32, 30, 40, 0.92);
+  --win: rgba(32, 30, 40, 0.95);
   --edge: rgba(255, 255, 255, 0.16);
+  --sheet: rgba(36, 34, 46, 0.88);
+  --hover: rgba(255, 255, 255, 0.08);
+  --press: rgba(255, 255, 255, 0.14);
+  --btn-top: rgba(255, 255, 255, 0.16);
+  --btn-bot: rgba(255, 255, 255, 0.08);
   --ink: #f0ebe0;
   --ink-2: #b9b2a3;
   --ink-3: #8b8475;
@@ -71,7 +82,8 @@ body {
 html[lang="bn"] body { font-family: "Hind Siliguri", var(--font-ui); font-size: 15px; }
 .serif-bn { font-family: var(--font-serif); }
 
-*:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+*:focus-visible { outline: 3px solid color-mix(in srgb, var(--accent) 45%, transparent); outline-offset: 1px; border-radius: 8px; }
+button { font-family: inherit; }
 
 .card { background: var(--card); border: 1px solid var(--edge); border-radius: var(--radius); box-shadow: var(--shadow), inset 0 1px 0 var(--edge); backdrop-filter: blur(22px) saturate(1.6); -webkit-backdrop-filter: blur(22px) saturate(1.6); }
 .hair { border: 1px solid var(--line); border-radius: 12px; background: var(--card); }
@@ -81,32 +93,43 @@ html[lang="bn"] body { font-family: "Hind Siliguri", var(--font-ui); font-size: 
 
 .btn {
   display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-  height: 34px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--line);
-  background: var(--card); color: var(--ink); font-weight: 600; font-size: 13px; cursor: pointer;
-  transition: background 0.15s, transform 0.05s, opacity 0.15s; white-space: nowrap;
+  height: 30px; padding: 0 13px; border-radius: 8px; border: 0;
+  background: linear-gradient(180deg, var(--btn-top), var(--btn-bot)); color: var(--ink);
+  font-weight: 500; font-size: 13px; letter-spacing: -0.005em; cursor: default;
+  box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.16), 0 0.5px 1.5px rgba(0, 0, 0, 0.1), inset 0 0.5px 0 rgba(255, 255, 255, 0.7);
+  transition: box-shadow 0.15s, filter 0.15s, background 0.15s, transform 0.12s cubic-bezier(.2,.8,.2,1); white-space: nowrap;
 }
-.btn:hover:not(:disabled) { background: var(--paper-2); }
-.btn:active:not(:disabled) { transform: translateY(1px); }
-.btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.btn-primary { background: var(--accent); border-color: transparent; color: #fff; }
-.btn-primary:hover:not(:disabled) { background: var(--accent); filter: brightness(1.08); }
-.btn-danger { background: var(--danger); border-color: transparent; color: #fff; }
-.btn-danger:hover:not(:disabled) { background: var(--danger); filter: brightness(1.08); }
-.btn-ghost { background: transparent; border-color: transparent; }
-.btn-icon { width: 34px; padding: 0; }
-.btn-sm { height: 28px; padding: 0 9px; font-size: 12px; border-radius: 8px; }
+.btn:hover:not(:disabled) { filter: brightness(0.985); }
+.btn:active:not(:disabled) { filter: brightness(0.94); transform: scale(0.985); }
+.btn:disabled { opacity: 0.45; }
+.btn-primary { background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 86%, #fff), var(--accent)); color: #fff; box-shadow: 0 0 0 0.5px color-mix(in srgb, var(--accent) 70%, #000), 0 1px 2px rgba(0, 0, 0, 0.18), inset 0 0.5px 0 rgba(255, 255, 255, 0.45); text-shadow: 0 0.5px 0 rgba(0, 0, 0, 0.18); }
+.btn-primary:hover:not(:disabled) { filter: brightness(1.06); }
+.btn-danger { background: linear-gradient(180deg, #ff6a5f, #e5382b); color: #fff; box-shadow: 0 0 0 0.5px #b42318, 0 1px 2px rgba(0, 0, 0, 0.18), inset 0 0.5px 0 rgba(255, 255, 255, 0.4); }
+.btn-ghost { background: transparent; box-shadow: none; }
+.btn-ghost:hover:not(:disabled) { background: var(--hover); filter: none; }
+.btn-ghost:active:not(:disabled) { background: var(--press); filter: none; }
+.btn-icon { width: 30px; padding: 0; border-radius: 8px; }
+.btn-sm { height: 26px; padding: 0 10px; font-size: 12px; border-radius: 7px; }
+.btn-sm.btn-icon { width: 26px; padding: 0; }
+
+.seg { display: inline-flex; padding: 2px; gap: 2px; border-radius: 9px; background: var(--hover); box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.06); }
+.seg button { height: 26px; padding: 0 12px; border: 0; border-radius: 7px; background: transparent; color: var(--ink-2); font: inherit; font-size: 12.5px; font-weight: 500; cursor: default; transition: background 0.18s, color 0.18s, box-shadow 0.18s; }
+.seg button[aria-selected="true"] { background: var(--card-solid); color: var(--ink); box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.14); }
 
 .input, .select, .textarea {
-  width: 100%; height: 36px; padding: 0 10px; border-radius: 10px; border: 1px solid var(--line);
-  background: var(--card); color: var(--ink); font: inherit; font-size: 13px;
+  width: 100%; height: 32px; padding: 0 10px; border-radius: 8px; border: 0;
+  background: color-mix(in srgb, var(--card-solid) 78%, transparent); color: var(--ink); font: inherit; font-size: 13px;
+  box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.18), inset 0 1px 1.5px rgba(0, 0, 0, 0.06);
+  transition: box-shadow 0.15s;
 }
+.select { appearance: none; padding-right: 26px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 10 10' fill='none' stroke='%238a8274' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2 3.5 5 6.5 8 3.5'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 9px center; }
 .textarea { height: auto; padding: 8px 10px; resize: vertical; min-height: 90px; }
-.input:focus, .select:focus, .textarea:focus { outline: 2px solid var(--accent); outline-offset: 0; }
-.input[aria-invalid="true"] { border-color: var(--danger); }
+.input:focus, .select:focus, .textarea:focus { outline: none; box-shadow: 0 0 0 3.5px color-mix(in srgb, var(--accent) 38%, transparent), 0 0 0 1px var(--accent); }
+.input[aria-invalid="true"] { box-shadow: 0 0 0 1px var(--danger); }
 .field-error { color: var(--danger); font-size: 12px; margin-top: 4px; }
-.label { display: block; font-size: 12px; font-weight: 600; color: var(--ink-2); margin-bottom: 4px; }
+.label { display: block; font-size: 12px; font-weight: 500; color: var(--ink-2); margin-bottom: 4px; }
 
-.chip { display: inline-flex; align-items: center; gap: 5px; height: 22px; padding: 0 8px; border-radius: 999px; font-size: 11px; font-weight: 600; border: 1px solid var(--line); background: var(--paper-2); color: var(--ink-2); }
+.chip { display: inline-flex; align-items: center; gap: 5px; height: 20px; padding: 0 8px; border-radius: 999px; font-size: 11px; font-weight: 500; background: var(--hover); color: var(--ink-2); box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.08); }
 
 .skeleton { background: linear-gradient(90deg, var(--paper-2), var(--card), var(--paper-2)); background-size: 200% 100%; animation: shimmer 1.4s infinite; border-radius: 10px; }
 @keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
@@ -122,22 +145,20 @@ html[lang="bn"] body { font-family: "Hind Siliguri", var(--font-ui); font-size: 
 }
 
 .table { width: 100%; border-collapse: collapse; font-size: 13px; }
-.table th { text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-3); font-weight: 700; padding: 8px 10px; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: var(--card-solid); z-index: 1; }
-.table td { padding: 8px 10px; border-bottom: 1px solid var(--line); }
+.table th { text-align: left; font-size: 11px; letter-spacing: 0.02em; color: var(--ink-3); font-weight: 600; padding: 8px 10px; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: var(--card-solid); z-index: 1; }
+.table td { padding: 9px 10px; border-bottom: 0.5px solid var(--line); }
 .table tr:hover td { background: color-mix(in srgb, var(--paper-2) 60%, transparent); }
 
-.scroll-thin::-webkit-scrollbar { width: 8px; height: 8px; }
-.scroll-thin::-webkit-scrollbar-thumb { background: var(--line); border-radius: 8px; }
+.scroll-thin::-webkit-scrollbar { width: 11px; height: 11px; }
+.scroll-thin::-webkit-scrollbar-thumb { background: rgba(120, 116, 134, 0.38); border-radius: 8px; border: 3px solid transparent; background-clip: content-box; }
+.scroll-thin::-webkit-scrollbar-thumb:hover { background-color: rgba(120, 116, 134, 0.6); }
 
-.dock-item { transition: transform 0.15s; }
-.dock-item:hover { transform: translateY(-6px) scale(1.12); }
 
 .cell-grid input { width: 100%; height: 100%; border: 0; background: transparent; padding: 0 8px; font: inherit; text-align: right; }
 .cell-grid input:focus { outline: 2px solid var(--accent); outline-offset: -2px; background: var(--card); }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; scroll-behavior: auto !important; }
-  .dock-item:hover { transform: none; }
 }
 
 @media print {
@@ -151,12 +172,12 @@ html[lang="bn"] body { font-family: "Hind Siliguri", var(--font-ui); font-size: 
 
 [cmdk-overlay] { position: fixed; inset: 0; z-index: 9500; background: rgba(0, 0, 0, 0.35); }
 [cmdk-dialog] { position: fixed; top: 14vh; left: 50%; transform: translateX(-50%); width: min(620px, 94vw); z-index: 9501; }
-[cmdk-root] { background: var(--card-solid); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow-lg); overflow: hidden; }
+[cmdk-root] { background: var(--sheet); backdrop-filter: blur(40px) saturate(1.8); -webkit-backdrop-filter: blur(40px) saturate(1.8); border: 0.5px solid var(--edge); border-radius: 16px; box-shadow: 0 0 0 0.5px rgba(0,0,0,.2), 0 30px 80px rgba(20, 16, 40, 0.4); overflow: hidden; }
 [cmdk-input] { width: 100%; height: 52px; padding: 0 18px; border: 0; border-bottom: 1px solid var(--line); background: transparent; color: var(--ink); font: inherit; font-size: 15px; outline: none; }
 [cmdk-list] { max-height: 52vh; overflow: auto; padding: 8px; }
 [cmdk-group-heading] { padding: 8px 10px 4px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-3); }
-[cmdk-item] { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 10px; cursor: pointer; font-size: 13.5px; }
-[cmdk-item][data-selected="true"] { background: var(--paper-2); }
+[cmdk-item] { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px; cursor: default; font-size: 13.5px; }
+[cmdk-item][data-selected="true"] { background: var(--accent); color: #fff; }
 [cmdk-empty] { padding: 24px; text-align: center; color: var(--ink-3); font-size: 13px; }
 
 /* ---- Apple-style glass wallpaper & windows ---- */
@@ -204,11 +225,28 @@ html[lang="bn"] body { font-family: "Hind Siliguri", var(--font-ui); font-size: 
   border: 1px solid var(--edge);
   box-shadow: inset 0 1px 0 var(--edge), 0 18px 50px rgba(30, 20, 60, .3);
 }
-.dock-item { box-shadow: inset 0 1px 0 rgba(255,255,255,.45), 0 6px 14px rgba(0,0,0,.2) !important; }
-.traffic { width: 12px; height: 12px; border-radius: 999px; border: 0.5px solid rgba(0,0,0,.2); display: inline-block; }
 
 @media (prefers-reduced-motion: reduce) { .wallpaper { animation: none; } }
 @media print { .wallpaper::before { display: none; } .card, .win { backdrop-filter: none !important; background: #fff !important; } }
 
 .win .glass { background: color-mix(in srgb, var(--win) 70%, transparent); backdrop-filter: none; -webkit-backdrop-filter: none; }
 .win .card { backdrop-filter: none; -webkit-backdrop-filter: none; background: color-mix(in srgb, var(--card-solid) 55%, transparent); }
+
+/* ---- macOS polish ---- */
+svg.lucide { stroke-width: 1.6; }
+.sheet { background: var(--sheet); backdrop-filter: blur(40px) saturate(1.8); -webkit-backdrop-filter: blur(40px) saturate(1.8); border-radius: 16px; box-shadow: 0 0 0 0.5px rgba(0,0,0,.22), inset 0 1px 0 var(--edge), 0 30px 80px rgba(20, 16, 40, 0.4); }
+.menubar { background: color-mix(in srgb, var(--glass) 75%, transparent); backdrop-filter: blur(30px) saturate(2); -webkit-backdrop-filter: blur(30px) saturate(2); box-shadow: 0 0.5px 0 rgba(0, 0, 0, 0.16); }
+.menubar .btn { height: 22px; }
+.menubar .btn-icon { width: 24px; }
+.traffic-group { display: flex; gap: 8px; align-items: center; }
+.traffic { width: 12px; height: 12px; border-radius: 999px; border: 0; padding: 0; display: grid; place-items: center; color: rgba(0, 0, 0, 0.55); box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.22); cursor: default; }
+.traffic svg { opacity: 0; width: 8px; height: 8px; stroke-width: 2.4; transition: opacity 0.1s; }
+.traffic-group:hover .traffic svg { opacity: 1; }
+.traffic.close { background: #ff5f57; } .traffic.min { background: #febc2e; } .traffic.max { background: #28c840; }
+.win:not(.win-focus) .traffic { background: rgba(130, 126, 146, 0.4); box-shadow: inset 0 0 0 0.5px rgba(0, 0, 0, 0.12); }
+.win:not(.win-focus) .traffic-group:hover .traffic.close { background: #ff5f57; }
+.win:not(.win-focus) .traffic-group:hover .traffic.min { background: #febc2e; }
+.win:not(.win-focus) .traffic-group:hover .traffic.max { background: #28c840; }
+.app-icon { position: relative; display: grid; place-items: center; color: #fff; border-radius: 22.5%; box-shadow: inset 0 0 0 0.5px rgba(255, 255, 255, 0.35), inset 0 1.5px 0 rgba(255, 255, 255, 0.4), 0 0.5px 1px rgba(0, 0, 0, 0.35), 0 6px 14px rgba(20, 16, 40, 0.28); }
+.app-icon svg { filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.3)); }
+.dock-dot { width: 4px; height: 4px; border-radius: 999px; background: var(--ink-2); }

@@ -198,9 +198,9 @@ export default function Routine() {
   return (
     <div className="flex h-full flex-col">
       <div className="no-print flex flex-wrap items-center gap-2 border-b p-3" style={{ borderColor: "var(--line)" }}>
-        <div className="flex gap-1" role="tablist">
+        <div className="seg" role="tablist">
           {(["week", "exam"] as const).map((k) => (
-            <Btn key={k} size="sm" role="tab" aria-selected={tab === k} className={tab === k ? "btn-primary" : ""} onClick={() => setTab(k)}>{k === "week" ? (role === "teacher" ? t("rt.mine") : t("rt.week")) : t("rt.exam")}</Btn>
+            <button key={k} type="button" role="tab" aria-selected={tab === k} onClick={() => setTab(k)}>{k === "week" ? (role === "teacher" ? t("rt.mine") : t("rt.week")) : t("rt.exam")}</button>
           ))}
         </div>
         {showPicker ? (

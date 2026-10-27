@@ -1,5 +1,5 @@
 "use client";
-import { CalendarClock, ChevronRight, Megaphone, PencilLine, Plus, Sparkles, Upload, UserPlus } from "lucide-react";
+import { CalendarClock, ChevronRight, CloudSun, GraduationCap, Megaphone, PencilLine, Plus, Trophy, Upload, UserPlus } from "lucide-react";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { useExamsQ, useRoutineQ, useSubjectsQ, useMatrixQ, useMyCellsQ, useMyExamsQ, useNoticesQ, usePlatformQ, useSignupsQ, useStudentsQ } from "@/api/hooks";
@@ -35,10 +35,9 @@ function SeasonBanner() {
   const season = useSeason();
   const session = useUI((s) => s.session);
   return (
-    <section className="card relative overflow-hidden p-5" style={{ gridColumn: "1 / -1", borderColor: SEASON_ACCENT[season] }}>
-      <div className="absolute inset-y-0 left-0 w-1.5" style={{ background: SEASON_ACCENT[season] }} />
-      <div className="flex items-center gap-3">
-        <Sparkles size={20} style={{ color: SEASON_ACCENT[season] }} />
+    <section className="card relative overflow-hidden p-5" style={{ gridColumn: "1 / -1" }}>
+            <div className="flex items-center gap-3">
+        <span className="grid size-10 shrink-0 place-items-center rounded-xl text-white" style={{ background: SEASON_ACCENT[season] }}>{season === "admission" ? <GraduationCap size={20} /> : season === "exam" ? <PencilLine size={20} /> : season === "result" ? <Trophy size={20} /> : <CloudSun size={20} />}</span>
         <div>
           <div className="serif-bn text-lg font-bold">{t(`season.${season}.greet`)}{session ? `, ${session.name.split(",")[0]}` : ""}</div>
           <div className="muted text-[13px]">{t(`season.${season}.hint`)}</div>

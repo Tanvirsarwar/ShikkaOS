@@ -26,7 +26,7 @@ export function AuthFrame({ children, brand, title }: { children: ReactNode; bra
   const setLang = useUI((s) => s.setLang);
   const season = seasonFromCalendar();
   return (
-    <main className="nakshi relative grid min-h-dvh place-items-center px-4 py-10">
+    <main className="wallpaper relative grid min-h-dvh place-items-center px-4 py-10">
       <div className="no-print absolute right-4 top-4 flex gap-2">
         <Btn size="sm" onClick={() => setLang(lang === "en" ? "bn" : "en")} aria-label={t("toggle.lang")}><Languages size={14} />{lang === "en" ? "বাংলা" : "English"}</Btn>
         <Btn size="sm" variant="icon" onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")} aria-label={t("toggle.theme")}>{resolvedTheme === "dark" ? <Sun size={15} /> : <Moon size={15} />}</Btn>
@@ -37,7 +37,7 @@ export function AuthFrame({ children, brand, title }: { children: ReactNode; bra
           <h1 className="serif-bn mt-3 text-[22px] font-bold leading-tight">{brand ? (lang === "bn" ? brand.nameBn : brand.name) : "ShikkaOS"}</h1>
           <p className="muted mt-1 text-[13px]">{t(`season.${season}.greet`)}</p>
         </div>
-        <div className="card p-6">
+        <div className="sheet p-6">
           {title ? <h2 className="mb-4 text-base font-bold">{title}</h2> : null}
           {children}
         </div>
