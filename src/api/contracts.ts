@@ -171,6 +171,8 @@ export const NoticeSchema = z.object({
   publishAt: z.string(),
   reads: z.number(),
   author: z.string(),
+  /** User ids that opened this notice (mock: drives per-user unread state). */
+  readBy: z.array(z.string()).optional(),
 });
 export type Notice = z.infer<typeof NoticeSchema>;
 

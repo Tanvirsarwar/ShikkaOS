@@ -1,6 +1,6 @@
 "use client";
 import { useQueryClient } from "@tanstack/react-query";
-import { Check, FileText, Lock, Send } from "lucide-react";
+import { AlertTriangle, Check, CircleDot, FileText, Loader2, Lock, RotateCw, Send } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Cell, MarkValue } from "@/api/contracts";
 import { repos } from "@/api/factory";
@@ -11,6 +11,7 @@ import { fmtDateTime } from "@/lib/dates";
 import { useT } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { pickExam } from "@/os/Widgets";
+import { useIntent } from "@/store/intent";
 
 type Parsed = { ok: boolean; v: MarkValue };
 function parse(s: string, full: number): Parsed {
@@ -35,6 +36,14 @@ export default function MarksEntry() {
   const subjects = useSubjectsQ();
   const [selKey, setSelKey] = useState<Cell | null>(null);
   const cell = (cells.data ?? []).find((c) => selKey && sameKey(c, selKey)) ?? (cells.data ?? [])[0];
+  const intent = useIntent((s) => s.intent);
+  const clearIntent = useIntent((s) => s.clear);
+  useEffect(() => {
+    if (intent?.kind !== "marks" || !cells.data) return;
+    const hit = cells.data.find((c) => c.classNo === intent.classNo && c.section === intent.section && c.subject === intent.subject);
+    if (hit) setSelKey(hit);
+    clearIntent();
+  }, [intent, cells.data, clearIntent]);
 
   if (cells.isLoading || exams.isLoading) return <SkeletonRows rows={6} />;
   if (!cell) return <Empty title={t("me.none")} hint={t("me.none.hint")} />;
@@ -73,6 +82,7 @@ function Grid({ cell, examId, roster, full }: { cell: Cell; examId: string; rost
   const qc = useQueryClient();
   const [vals, setVals] = useState<Record<string, string>>(() => Object.fromEntries(roster.map((s) => [s.id, String(cell.marks[s.id] ?? "")])));
   const [saved, setSaved] = useState<string | null>(null);
+  const [saveState, setSaveState] = useState<"idle" | "dirty" | "saving" | "saved" | "failed">("idle");
   const [confirm, setConfirm] = useState(false);
   const [paperOpen, setPaperOpen] = useState(false);
   const paperKeys = usePaperKeysQ(examId);
@@ -88,16 +98,37 @@ function Grid({ cell, examId, roster, full }: { cell: Cell; examId: string; rost
   const filled = parsed.filter((p) => p.ok && p.v !== null).length;
   const toMarks = () => Object.fromEntries(roster.map((s, i) => [s.id, (parsed[i] as Parsed).v]).filter(([, v]) => v !== null)) as Record<string, MarkValue>;
 
-  useEffect(() => {
+  const latest = useRef<() => Record<string, MarkValue>>(toMarks);
+  latest.current = toMarks;
+  const saveNow = () => {
     if (locked || !dirty.current) return;
-    const h = setTimeout(() => {
-      repos.marks.saveDraft(k, toMarks()).then((c) => { dirty.current = false; setSaved(c.updatedAt); void qc.invalidateQueries({ queryKey: ["myCells"] }); }).catch(() => undefined);
-    }, 1200);
+    dirty.current = false;
+    setSaveState("saving");
+    repos.marks.saveDraft(k, latest.current())
+      .then((c) => { setSaved(c.updatedAt); setSaveState((st) => (st === "dirty" ? "dirty" : "saved")); void qc.invalidateQueries({ queryKey: ["myCells"] }); })
+      .catch(() => { dirty.current = true; setSaveState("failed"); });
+  };
+
+  // Autosave 1.2 s after the last edit. Typed values stay in the grid if saving fails, so nothing is lost.
+  useEffect(() => {
+    if (locked || saveState !== "dirty") return;
+    const h = setTimeout(saveNow, 1200);
     return () => clearTimeout(h);
-  }); // eslint-disable-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [saveState, vals, locked]);
+
+  // Flush a pending draft when the window closes or the user switches sheet; warn before leaving the page with unsaved edits.
+  useEffect(() => {
+    const warn = (e: BeforeUnloadEvent) => { if (dirty.current) { e.preventDefault(); } };
+    window.addEventListener("beforeunload", warn);
+    return () => {
+      window.removeEventListener("beforeunload", warn);
+      if (dirty.current && !locked) void repos.marks.saveDraft(k, latest.current()).catch(() => undefined);
+    };
+  }, [k, locked]);
 
   const submit = useMut(() => repos.marks.submit(k, toMarks()), [...RESULT_KEYS], t("me.submitted"));
-  const set = (id: string, v: string) => { dirty.current = true; setVals((p) => ({ ...p, [id]: v })); };
+  const set = (id: string, v: string) => { dirty.current = true; setSaveState("dirty"); setVals((p) => ({ ...p, [id]: v })); };
   const focus = (i: number) => { const el = refs.current[i]; if (el) { el.focus(); el.select(); } };
 
   function onPaste(e: React.ClipboardEvent, start: number) {
@@ -111,6 +142,7 @@ function Grid({ cell, examId, roster, full }: { cell: Cell; examId: string; rost
       if (s) next[s.id] = (l.split("\t").pop() ?? "").trim();
     });
     dirty.current = true;
+    setSaveState("dirty");
     setVals(next);
   }
 
@@ -122,7 +154,12 @@ function Grid({ cell, examId, roster, full }: { cell: Cell; examId: string; rost
         {locked ? <span className="chip" style={{ color: "var(--warn)" }}><Lock size={11} />{t("me.locked")}</span> : null}
         <div className="flex-1" />
         <Btn size="sm" onClick={() => setPaperOpen(true)}><FileText size={13} />{hasPaper ? t("paper.attached") : paperLocked ? t("paper.none.short") : t("paper.add")}</Btn>
-        <span className="faint text-[12px]">{saved ? <><Check size={12} className="inline" /> {t("me.saved")} {fmtDateTime(saved, lang)}</> : null}</span>
+        <span role="status" aria-live="polite" className="text-[12.5px]">
+          {saveState === "saving" ? <span className="status status-info"><Loader2 size={12} className="animate-spin" />{t("me.saving")}</span>
+            : saveState === "dirty" ? <span className="status status-muted"><CircleDot size={12} />{t("me.unsaved")}</span>
+            : saveState === "failed" ? <span className="status status-danger"><AlertTriangle size={12} />{t("me.savefail")}<button type="button" className="ml-1 inline-flex items-center gap-1 underline" onClick={saveNow}><RotateCw size={11} />{t("retry")}</button></span>
+            : saved ? <span className="status status-ok"><Check size={12} />{t("me.saved")} {fmtDateTime(saved, lang)}</span> : null}
+        </span>
         <Btn variant="primary" disabled={locked || bad > 0 || filled !== roster.length || submit.isPending} onClick={() => setConfirm(true)}><Send size={14} />{t("me.submit")}</Btn>
       </div>
       {cell.returnComment ? <div className="mx-3 mt-3 rounded-lg border p-2 text-[13px]" style={{ borderColor: "var(--warn)", color: "var(--warn)" }}>{t("rc.returned")}: {cell.returnComment}</div> : null}
@@ -137,10 +174,11 @@ function Grid({ cell, examId, roster, full }: { cell: Cell; examId: string; rost
                 <tr key={s.id}>
                   <td>{s.roll}</td><td>{s.name}</td>
                   <td className="!p-0" style={{ height: 34, background: !p.ok ? "color-mix(in srgb, var(--danger) 14%, transparent)" : undefined }}>
-                    <input ref={(el) => { refs.current[i] = el; }} aria-label={`${s.name} ${t("col.marks")}`} aria-invalid={!p.ok} disabled={locked} value={vals[s.id] ?? ""} inputMode="decimal"
+                    <input ref={(el) => { refs.current[i] = el; }} aria-label={`${s.name} ${t("col.marks")}`} aria-invalid={!p.ok} disabled={locked} value={vals[s.id] ?? ""} inputMode="decimal" enterKeyHint="next" autoComplete="off"
                       onChange={(e) => set(s.id, e.target.value)} onPaste={(e) => onPaste(e, i)}
                       onKeyDown={(e) => {
-                        if (e.key === "ArrowDown" || e.key === "Enter") { e.preventDefault(); focus(Math.min(roster.length - 1, i + 1)); }
+                        if (e.key === "Enter" && e.shiftKey) { e.preventDefault(); focus(Math.max(0, i - 1)); }
+                        else if (e.key === "ArrowDown" || e.key === "Enter") { e.preventDefault(); focus(Math.min(roster.length - 1, i + 1)); }
                         else if (e.key === "ArrowUp") { e.preventDefault(); focus(Math.max(0, i - 1)); }
                       }} />
                   </td>

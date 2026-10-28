@@ -48,11 +48,11 @@ export const useMatrixQ = (examId: string) => useQuery({ queryKey: keys.matrix(e
 export const useMyCellsQ = (examId: string) => useQuery({ queryKey: keys.myCells(examId), queryFn: () => repos.marks.myCells(examId), enabled: !!examId });
 export const useArticlesQ = () => useQuery({ queryKey: keys.articles, queryFn: () => repos.magazine.articles() });
 export const useIssuesQ = () => useQuery({ queryKey: keys.issues, queryFn: () => repos.magazine.issues() });
-export const useNoticesQ = () => useQuery({ queryKey: keys.notices, queryFn: () => repos.notice.list() });
-export const useNotificationsQ = () => useQuery({ queryKey: keys.notifications, queryFn: () => repos.notice.notifications(), refetchInterval: 20_000 });
-export const useSignupsQ = () => useQuery({ queryKey: keys.signups, queryFn: () => repos.approval.pendingSignups() });
+export const useNoticesQ = (enabled = true) => useQuery({ queryKey: keys.notices, queryFn: () => repos.notice.list(), enabled });
+export const useNotificationsQ = (enabled = true) => useQuery({ queryKey: keys.notifications, queryFn: () => repos.notice.notifications(), refetchInterval: 20_000, enabled });
+export const useSignupsQ = (enabled = true) => useQuery({ queryKey: keys.signups, queryFn: () => repos.approval.pendingSignups(), enabled });
 export const useAuditQ = () => useQuery({ queryKey: keys.audit, queryFn: () => repos.audit.list() });
-export const useMyExamsQ = () => useQuery({ queryKey: keys.myExams, queryFn: () => repos.result.myExams(), refetchInterval: 15_000 });
+export const useMyExamsQ = (enabled = true) => useQuery({ queryKey: keys.myExams, queryFn: () => repos.result.myExams(), refetchInterval: 15_000, enabled });
 export const useMyHistoryQ = () => useQuery({ queryKey: keys.myHistory, queryFn: () => repos.result.myHistory() });
 export const usePlatformQ = () => ({
   schools: useQuery({ queryKey: [...keys.platform, "schools"], queryFn: () => repos.platform.schools() }),

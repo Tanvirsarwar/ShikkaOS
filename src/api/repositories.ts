@@ -121,6 +121,7 @@ export interface NoticeRepo {
   togglePin(id: string): Promise<void>;
   markRead(id: string): Promise<void>;
   notifications(): Promise<Notification[]>;
+  markNotificationRead(id: string): Promise<void>;
   markAllRead(): Promise<void>;
 }
 

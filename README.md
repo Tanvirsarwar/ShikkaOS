@@ -1,8 +1,19 @@
-# ShikkaOS — Phase 1
+# ShikkaOS v1.3
 
-A private school operating system: OS-style workspace (dock, windows, spotlight, widgets) with a realistic mock backend and seeded demo data. Nothing is public except Login / Sign up / Forgot.
+A private school operating system: OS-style workspace (menu bar, dock, windows, Spotlight, widgets, Action Center) with a realistic **mock** backend and seeded demo data. Nothing is public except Login / Sign up / Forgot.
 
-## NixOS quick start
+> **Demo software.** All data lives in this browser's `localStorage`. Passwords, sessions and files there are not encrypted or protected. Do not enter real student data. The real backend is Phase 2 (see `docs/PHASE2-READINESS.md`).
+
+## Run it (any OS with Node 22 + pnpm 9)
+
+```bash
+pnpm install
+pnpm dev               # development, http://localhost:3000
+# or a production build:
+pnpm build && pnpm start   # static export served from ./out on :3000
+```
+
+## NixOS quick start (same commands inside the dev shell)
 
 ```bash
 nix develop            # or: nix-shell
@@ -85,3 +96,12 @@ The Electron app is only built in CI (`desktop/`), so no Electron binary is need
 - **Profiles:** students, teachers and the registrar can add/crop/remove a photo and edit their own details; the registrar can edit any student or teacher (Students/Teachers apps, profile, Edit profile).
 - **Question paper:** teachers attach the paper (PDF/image, up to 1.2 MB) from Marks Entry, fill the marks sheet and submit it; the registrar opens the paper from the Results Center cell panel before verifying.
 - **Petra console** is not on the school login page. See `docs/PETRA-CONSOLE.md`.
+
+## v1.3
+
+- **Unified Action Center** (bell in the menu bar, Spotlight, desktop widget): approvals, marks to enter or review, returned sheets, publish-ready classes, unread notices and updates in one filterable list. See `docs/ACTION-CENTER.md`.
+- **Design system refresh** (tokens, type scale, 40 px controls, contrast fixes). See `docs/DESIGN-SYSTEM.md`.
+- **Results Center:** class search, state filters, sticky class column, per-class progress, solid side panel.
+- **Marks Entry:** explicit Unsaved / Saving / Saved / Couldn't save + Retry states, flush on close, Shift+Enter, leave-page warning.
+- **Import wizard:** goes straight to problem rows when the file has errors; text + icon row status.
+- Full list and known limits: `CHANGELOG.md`. Checks that were run: `docs/VERIFICATION.md`.

@@ -16,6 +16,10 @@ type UI = {
   zTop: number;
   mobileApp: string | null;
   spotlight: boolean;
+  /** Action Center items this user dismissed on this device, keyed by `${userId}|${itemId}`. */
+  dismissed: Record<string, number>;
+  dismiss: (key: string) => void;
+  restoreDismissed: (prefix: string) => void;
   setLang: (l: Lang) => void;
   setBnDigits: (b: boolean) => void;
   setSession: (s: Session | null) => void;
@@ -30,6 +34,18 @@ type UI = {
   moveApp: (id: string, p: Partial<WinState>) => void;
   setMobileApp: (id: string | null) => void;
 };
+
+const Z_CEILING = 5000;
+
+/** Re-number window z-indexes when they grow too large so windows never climb above the dock / menu bar layers. */
+function normalizeZ(w: Record<string, WinState>, focus: string): { windows: Record<string, WinState>; zTop: number } {
+  const order = Object.entries(w).sort((a, b) => a[1].z - b[1].z).map(([id]) => id).filter((id) => id !== focus);
+  const out: Record<string, WinState> = {};
+  order.forEach((id, i) => { out[id] = { ...(w[id] as WinState), z: 10 + i }; });
+  const zTop = 10 + order.length;
+  out[focus] = { ...(w[focus] as WinState), z: zTop };
+  return { windows: out, zTop };
+}
 
 function defaultWin(i: number): WinState {
   return { x: 90 + i * 28, y: 70 + i * 24, w: 980, h: 600, z: 1, open: false, min: false, max: false };
@@ -47,6 +63,9 @@ export const useUI = create<UI>()(
       zTop: 10,
       mobileApp: null,
       spotlight: false,
+      dismissed: {},
+      dismiss: (key) => set({ dismissed: { ...get().dismissed, [key]: Date.now() } }),
+      restoreDismissed: (prefix) => set({ dismissed: Object.fromEntries(Object.entries(get().dismissed).filter(([k]) => !k.startsWith(prefix))) }),
       setLang: (lang) => set({ lang }),
       setBnDigits: (bnDigits) => set({ bnDigits }),
       setSession: (session) => set({ session, locked: false, windows: session ? get().windows : {}, mobileApp: null }),
@@ -57,7 +76,8 @@ export const useUI = create<UI>()(
         const w = get().windows;
         const z = get().zTop + 1;
         const cur = w[id] ?? defaultWin(Object.keys(w).length);
-        set({ windows: { ...w, [id]: { ...cur, open: true, min: false, z } }, zTop: z, mobileApp: id, spotlight: false });
+        const next = { ...w, [id]: { ...cur, open: true, min: false, z } };
+        set({ ...(z > Z_CEILING ? normalizeZ(next, id) : { windows: next, zTop: z }), mobileApp: id, spotlight: false });
       },
       closeApp: (id) => {
         const w = get().windows;
@@ -69,7 +89,9 @@ export const useUI = create<UI>()(
         const w = get().windows;
         const cur = w[id];
         const z = get().zTop + 1;
-        if (cur) set({ windows: { ...w, [id]: { ...cur, z, min: false } }, zTop: z });
+        if (!cur) return;
+        const next = { ...w, [id]: { ...cur, z, min: false } };
+        set(z > Z_CEILING ? normalizeZ(next, id) : { windows: next, zTop: z });
       },
       toggleMin: (id) => {
         const w = get().windows;
@@ -90,7 +112,7 @@ export const useUI = create<UI>()(
     }),
     {
       name: "shikkaos:v1:ui",
-      partialize: (s) => ({ lang: s.lang, bnDigits: s.bnDigits, windows: s.windows }),
+      partialize: (s) => ({ lang: s.lang, bnDigits: s.bnDigits, windows: s.windows, zTop: s.zTop, dismissed: s.dismissed }),
     },
   ),
 );

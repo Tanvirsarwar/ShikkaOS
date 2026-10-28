@@ -1,7 +1,7 @@
 "use client";
 import { AnimatePresence, motion } from "motion/react";
 import { Maximize2, Minus, Plus, X } from "lucide-react";
-import { useRef, type PointerEvent as RPE, type ReactNode } from "react";
+import { useEffect, useRef, type PointerEvent as RPE, type ReactNode } from "react";
 import { useT } from "@/lib/i18n";
 import { useUI, type WinState } from "@/store/ui";
 import type { AppDef } from "@/apps/registry";
@@ -26,6 +26,18 @@ export function WindowFrame({ app, win, children }: { app: AppDef; win: WinState
   const drag = useRef<{ px: number; py: number; x: number; y: number } | null>(null);
   const rs = useRef<{ px: number; py: number; w: number; h: number; mode: "r" | "b" | "rb" } | null>(null);
   const topZ = useUI((s) => Math.max(0, ...Object.values(s.windows).filter((w) => w.open && !w.min).map((w) => w.z)));
+
+  // Keep windows reachable: re-clamp when opened and whenever the viewport shrinks.
+  useEffect(() => {
+    if (!win.open) return;
+    const fit = () => {
+      const c = clampWin(win, window.innerWidth, window.innerHeight);
+      if (c.x !== win.x || c.y !== win.y || c.w !== win.w || c.h !== win.h) moveApp(app.id, c);
+    };
+    fit();
+    window.addEventListener("resize", fit);
+    return () => window.removeEventListener("resize", fit);
+  }, [win, app.id, moveApp]);
 
   const onDragStart = (e: RPE<HTMLDivElement>) => {
     if (win.max || (e.target as HTMLElement).closest("button")) return;
@@ -79,6 +91,8 @@ export function WindowFrame({ app, win, children }: { app: AppDef; win: WinState
           style={{ ...style, transformOrigin: "50% 100%", display: win.min ? "none" : "flex", ["--accent" as string]: app.color }}
           onPointerDown={() => focusApp(app.id)}
           aria-label={t(`app.${app.id}`)}
+          role="dialog"
+          aria-modal={false}
         >
           <div className="relative flex h-11 shrink-0 cursor-default select-none items-center px-3.5" style={{ background: "color-mix(in srgb, var(--win) 60%, transparent)", boxShadow: "0 0.5px 0 var(--line)" }} onPointerDown={onDragStart} onPointerMove={onDragMove} onPointerUp={onDragEnd} onDoubleClick={() => toggleMax(app.id)}>
             <div className="traffic-group" onPointerDown={(e) => e.stopPropagation()}>

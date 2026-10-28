@@ -656,7 +656,9 @@ const notice: NoticeRepo = {
       .filter((n) => n.schoolId === s.schoolId)
       .filter((n) => s.role === "registrar" || new Date(n.publishAt).getTime() <= now)
       .filter((n) => s.role === "registrar" || n.audience === "all" || (n.audience === "teachers" && s.role === "teacher") || (n.audience === "class" && (s.role === "teacher" || (me && me.classNo === n.classNo))))
-      .sort((a, b) => Number(b.pinned) - Number(a.pinned) || b.publishAt.localeCompare(a.publishAt)));
+      .sort((a, b) => Number(b.pinned) - Number(a.pinned) || b.publishAt.localeCompare(a.publishAt))
+      // Never expose who else read a notice: return only whether the caller has read it.
+      .map((n) => ({ ...n, readBy: (n.readBy ?? []).includes(s.userId) ? [s.userId] : [] })));
   },
   async create(input) {
     await latency();
@@ -678,7 +680,12 @@ const notice: NoticeRepo = {
   async markRead(id) {
     const s = need();
     const n = getDb().notices.find((x) => x.id === id && x.schoolId === s.schoolId);
-    if (n && s.role !== "registrar") { n.reads += 1; persist(); }
+    if (!n) return;
+    const by = n.readBy ?? [];
+    if (by.includes(s.userId)) return;
+    n.readBy = [...by, s.userId];
+    if (s.role !== "registrar") n.reads += 1;
+    persist();
   },
   async notifications() {
     await latency();
@@ -686,6 +693,11 @@ const notice: NoticeRepo = {
     const db = getDb();
     applyScheduled(db);
     return clone(db.notifications.filter((n) => n.schoolId === s.schoolId && (n.role === null || n.role === s.role)).slice(0, 30));
+  },
+  async markNotificationRead(id) {
+    const s = need();
+    const n = getDb().notifications.find((x) => x.id === id && x.schoolId === s.schoolId && (x.role === null || x.role === s.role));
+    if (n) { n.read = true; persist(); }
   },
   async markAllRead() {
     const s = need();

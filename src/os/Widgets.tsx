@@ -10,6 +10,7 @@ import { useT } from "@/lib/i18n";
 import { SEASON_ACCENT } from "@/lib/season";
 import { useUI } from "@/store/ui";
 import { launch } from "./launch";
+import { useActionItems } from "@/features/actions/useActionItems";
 import { useSeason } from "./useSeason";
 import { currentAndNext, periodTime } from "@/lib/routine";
 
@@ -20,9 +21,9 @@ export function pickExam(exams: Exam[] | undefined): Exam | undefined {
 
 function Widget({ title, children, onClick, span }: { title: string; children: ReactNode; onClick?: () => void; span?: number }) {
   return (
-    <section className="card p-4" style={{ gridColumn: span ? `span ${span}` : undefined }}>
+    <section className={`card min-w-0 p-4 ${span === 2 ? "wspan-2" : ""}`}>
       <header className="mb-2 flex items-center justify-between">
-        <h3 className="faint text-[11px] font-bold uppercase tracking-wider">{title}</h3>
+        <h3 className="text-[11.5px] font-bold uppercase tracking-wider" style={{ color: "var(--ink-2)" }}>{title}</h3>
         {onClick ? <Btn variant="icon" size="sm" onClick={onClick} aria-label={title}><ChevronRight size={14} /></Btn> : null}
       </header>
       {children}
@@ -209,11 +210,35 @@ function PetraWidgets() {
   );
 }
 
+function ActionsWidget() {
+  const { t, n } = useT();
+  const { items, isLoading } = useActionItems();
+  const top = items.slice(0, 3);
+  return (
+    <Widget title={`${t("app.actions")} · ${n(items.length)}`} onClick={() => launch("actions")} span={2}>
+      {isLoading ? <Skeleton h={60} /> : top.length === 0 ? <p className="muted text-[13px]">{t("ac.clear")}</p> : (
+        <ul className="grid gap-1">
+          {top.map((i) => (
+            <li key={i.id}>
+              <button type="button" className="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left text-[13.5px] hover:bg-[var(--hover)]" onClick={() => launch("actions")}>
+                <span className={`prio prio-${i.priority}`} aria-hidden /><span className="sr-only">{t(`ac.prio.${i.priority}`)}</span>
+                <span className="min-w-0 flex-1 truncate">{i.title}</span>
+                <ChevronRight size={14} className="faint shrink-0" />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Widget>
+  );
+}
+
 export function Widgets() {
   const role = useUI((s) => s.session?.role);
   return (
-    <div className="grid gap-4 p-5" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", maxWidth: 1000 }}>
+    <div className="grid gap-4 p-5" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(min(260px, 100%), 1fr))", maxWidth: 1000 }}>
       <SeasonBanner />
+      {role && role !== "petra" ? <ActionsWidget /> : null}
       {role === "registrar" ? <RegistrarWidgets /> : role === "teacher" ? <TeacherWidgets /> : role === "student" ? <StudentWidgets /> : role === "petra" ? <PetraWidgets /> : null}
     </div>
   );

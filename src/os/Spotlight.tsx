@@ -8,6 +8,8 @@ import { useIntent } from "@/store/intent";
 import { useUI } from "@/store/ui";
 import { appsFor } from "@/apps/registry";
 import { launch } from "./launch";
+import { useActionItems } from "@/features/actions/useActionItems";
+import { openAction } from "@/apps/actions/ActionCenter";
 import { pickExam } from "./Widgets";
 
 export function Spotlight() {
@@ -34,6 +36,7 @@ export function Spotlight() {
     for (const [k, v] of rows) if (v.every((s) => s === "verified")) readyClasses.push(k);
   }
   const apps = role ? appsFor(role) : [];
+  const actions = useActionItems().items.filter((i) => i.app !== "actions").slice(0, 5);
   const run = (fn: () => void) => { setOpen(false); fn(); };
 
   return (
@@ -41,6 +44,15 @@ export function Spotlight() {
       <Command.Input placeholder={t("spot.placeholder")} />
       <Command.List>
         <Command.Empty>{t("spot.empty")}</Command.Empty>
+        {actions.length ? (
+          <Command.Group heading={t("spot.attention")}>
+            {actions.map((i) => (
+              <Command.Item key={i.id} value={`action ${i.title} ${i.detail ?? ""}`} onSelect={() => run(() => openAction(i))}>
+                <span className={`prio prio-${i.priority}`} aria-hidden /><span className="min-w-0 flex-1 truncate">{i.title}</span><span className="faint text-[11.5px]">{i.openLabel}</span>
+              </Command.Item>
+            ))}
+          </Command.Group>
+        ) : null}
         <Command.Group heading={t("spot.apps")}>
           {apps.map((a) => (
             <Command.Item key={a.id} value={`app ${t(`app.${a.id}`)} ${a.id}`} onSelect={() => run(() => launch(a.id))}>
@@ -81,6 +93,7 @@ export function Spotlight() {
           </Command.Group>
         ) : null}
       </Command.List>
+      <div className="faint flex gap-4 border-t px-4 py-2 text-[11.5px]" style={{ borderColor: "var(--line)" }} aria-hidden><span><kbd>↑</kbd> <kbd>↓</kbd> {t("spot.k.move")}</span><span><kbd>Enter</kbd> {t("spot.k.open")}</span><span><kbd>Esc</kbd> {t("spot.k.close")}</span></div>
     </Command.Dialog>
   );
 }

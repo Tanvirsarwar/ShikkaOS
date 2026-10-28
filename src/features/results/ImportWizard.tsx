@@ -1,5 +1,5 @@
 "use client";
-import { CheckCircle2, Download, FileSpreadsheet, UploadCloud } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Download, FileSpreadsheet, UploadCloud, XCircle } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 import { repos } from "@/api/factory";
 import { keys, RESULT_KEYS, useMut, useStudentsQ, useSubjectsQ, useTeachersQ } from "@/api/hooks";
@@ -17,6 +17,13 @@ export type WizardMode = "marks" | "roster" | "teachers";
 type Sheets = { sheet: string; grid: Grid }[];
 
 const STEPS = ["wiz.upload", "wiz.detect", "wiz.validate", "wiz.preview", "wiz.confirm"];
+
+function RowStatus({ status }: { status: "ok" | "warn" | "error" }) {
+  const { t } = useT();
+  return status === "ok" ? <span className="status status-ok !h-5"><CheckCircle2 size={12} />{t("wiz.row.ok")}</span>
+    : status === "warn" ? <span className="status status-warn !h-5"><AlertTriangle size={12} />{t("wiz.row.warn")}</span>
+    : <span className="status status-danger !h-5"><XCircle size={12} />{t("wiz.row.error")}</span>;
+}
 
 function StepBar({ step }: { step: number }) {
   const { t } = useT();
@@ -153,7 +160,7 @@ export function ImportWizard({ open, onClose, mode, examId, initialFile, preset 
         <>
           {step > 0 ? <Btn onClick={() => setStep(Math.max(0, step - 1))}>{t("back")}</Btn> : null}
           {step === 1 ? <Btn variant="primary" onClick={runValidate}>{t("wiz.validate")}</Btn> : null}
-          {step === 2 ? <Btn variant="primary" onClick={() => setStep(3)}>{t("wiz.preview")}</Btn> : null}
+          {step === 2 ? <Btn variant="primary" onClick={() => { setOnlyBad(bad > 0); setStep(3); }}>{bad > 0 ? t("wiz.reviewerrors") : t("wiz.preview")}</Btn> : null}
           {step === 3 ? <Btn variant="primary" onClick={() => setStep(4)}>{t("next")}</Btn> : null}
           {step === 4 ? <Btn variant="primary" disabled={busy || good === 0} onClick={() => void confirm()}>{busy ? t("working") : t("wiz.import")}</Btn> : null}
         </>
@@ -207,11 +214,11 @@ export function ImportWizard({ open, onClose, mode, examId, initialFile, preset 
                   ? (val?.rows ?? []).filter((r) => !onlyBad || r.status !== "ok").map((r) => (
                     <tr key={r.row} style={{ background: r.status === "error" ? "color-mix(in srgb, var(--danger) 10%, transparent)" : r.status === "warn" ? "color-mix(in srgb, var(--warn) 12%, transparent)" : undefined }}>
                       <td>{r.row}</td><td>{r.roll}</td><td>{r.name}</td>{r.cells.map((c, i) => <td key={i}>{c}</td>)}
-                      <td className="text-[12px]">{r.status === "ok" ? "✓" : r.messages.join("; ")}</td>
+                      <td className="text-[12px]"><RowStatus status={r.status} />{r.status !== "ok" ? <div className="mt-1">{r.messages.join("; ")}</div> : null}</td>
                     </tr>))
                   : (genVal?.rows ?? []).filter((r) => !onlyBad || r.status !== "ok").map((r) => (
                     <tr key={r.row} style={{ background: r.status === "error" ? "color-mix(in srgb, var(--danger) 10%, transparent)" : r.status === "warn" ? "color-mix(in srgb, var(--warn) 12%, transparent)" : undefined }}>
-                      <td>{r.row}</td><td>{r.data ? ("studentId" in r.data ? `${r.data.studentId} · ${r.data.name}` : `${r.data.name} · ${r.data.phone}`) : "—"}</td><td className="text-[12px]">{r.status === "ok" ? "✓" : r.messages.join("; ")}</td>
+                      <td>{r.row}</td><td>{r.data ? ("studentId" in r.data ? `${r.data.studentId} · ${r.data.name}` : `${r.data.name} · ${r.data.phone}`) : "—"}</td><td className="text-[12px]"><RowStatus status={r.status} />{r.status !== "ok" ? <div className="mt-1">{r.messages.join("; ")}</div> : null}</td>
                     </tr>))}
               </tbody>
             </table>

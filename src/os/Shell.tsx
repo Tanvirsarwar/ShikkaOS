@@ -5,49 +5,35 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { motion, useMotionValue, useSpring, useTransform, type MotionValue } from "motion/react";
 import { repos } from "@/api/factory";
-import { keys, useMut, useMyProfileQ, useNotificationsQ, useSchoolQ } from "@/api/hooks";
+import { useMyProfileQ, useSchoolQ } from "@/api/hooks";
 import { Avatar, Btn, Monogram, Skeleton, Tip } from "@/components/ui";
-import { fmtDateTime } from "@/lib/dates";
 import { useHydrated, useT } from "@/lib/i18n";
-import { SEASON_ACCENT } from "@/lib/season";
 import { useUI } from "@/store/ui";
 import { appById, appsFor } from "@/apps/registry";
 import { AppIcon } from "./AppIcon";
+import { useActionItems } from "@/features/actions/useActionItems";
 import { LockScreen } from "./LockScreen";
 import { Spotlight } from "./Spotlight";
 import { WindowFrame } from "./WindowFrame";
 import { Widgets } from "./Widgets";
 import { launch } from "./launch";
 import { useMedia } from "./useMedia";
-import { useSeason } from "./useSeason";
 
 const IDLE_MS = 15 * 60 * 1000;
 
-function NotificationCenter() {
-  const { t, lang } = useT();
-  const [open, setOpen] = useState(false);
-  const { data } = useNotificationsQ();
-  const clear = useMut(() => repos.notice.markAllRead(), [keys.notifications]);
-  const unread = (data ?? []).filter((n) => !n.read).length;
+function ActionButton() {
+  const { t, n } = useT();
+  const { items } = useActionItems();
+  const urgent = items.filter((i) => i.priority !== "low").length;
+  const count = items.length;
+  const label = count ? `${t("app.actions")} · ${t("ac.count", { n: n(count) })}` : t("app.actions");
   return (
-    <div className="relative">
-      <Tip label={t("notif.title")}>
-        <Btn variant="icon" aria-label={t("notif.title")} onClick={() => setOpen(!open)}>
-          <Bell size={16} />
-          {unread ? <span className="absolute right-1 top-1 size-2 rounded-full" style={{ background: "var(--danger)" }} /> : null}
-        </Btn>
-      </Tip>
-      {open ? (
-        <div className="sheet absolute right-0 top-8 z-[9100] w-[320px] max-w-[90vw] p-2">
-          <div className="flex items-center justify-between px-2 py-1"><span className="text-[13px] font-bold">{t("notif.title")}</span><Btn size="sm" variant="ghost" onClick={() => clear.mutate(undefined)}>{t("notif.clear")}</Btn></div>
-          <ul className="scroll-thin max-h-[320px] overflow-auto">
-            {(data ?? []).length === 0 ? <li className="faint p-4 text-center text-[13px]">{t("notif.empty")}</li> : (data ?? []).map((n) => (
-              <li key={n.id} className="rounded-lg px-2 py-2 text-[13px]" style={{ background: n.read ? undefined : "var(--paper-2)" }}><div>{n.text}</div><div className="faint text-[11px]">{fmtDateTime(n.at, lang)}</div></li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-    </div>
+    <Tip label={label}>
+      <Btn variant="icon" size="sm" className="relative" aria-label={label} onClick={() => launch("actions")}>
+        <Bell size={14} />
+        {count ? <span className="count-badge" style={urgent ? undefined : { background: "var(--ink-3)" }} aria-hidden>{count > 99 ? "99+" : n(count)}</span> : null}
+      </Btn>
+    </Tip>
   );
 }
 
@@ -102,7 +88,7 @@ function TopBar({ mobile }: { mobile: boolean }) {
       <span className="serif-bn ml-1.5 max-w-[46vw] truncate text-[13px] font-bold">{title}</span>
       <div className="flex-1" />
       <Btn variant="icon" size="sm" onClick={() => setSpot(true)} aria-label={t("spot.trigger")}><Search size={14} /></Btn>
-      <NotificationCenter />
+      {role !== "petra" ? <ActionButton /> : null}
       <Btn variant="icon" size="sm" onClick={() => setLang(lang === "en" ? "bn" : "en")} aria-label={t("toggle.lang")}><Languages size={14} /></Btn>
       <Btn variant="icon" size="sm" onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")} aria-label={t("toggle.theme")}>{resolvedTheme === "dark" ? <Sun size={14} /> : <Moon size={14} />}</Btn>
       <Clock />
@@ -152,7 +138,7 @@ function Dock() {
       className="dock absolute bottom-3 left-1/2 z-[9040] flex h-[68px] -translate-x-1/2 items-end gap-2.5 rounded-[24px] px-3 pb-2"
       aria-label={t("dock.label")}
     >
-      {appsFor(role).map((a) => {
+      {appsFor(role).filter((a) => a.inDock !== false || windows[a.id]?.open).map((a) => {
         const w = windows[a.id];
         const running = !!w?.open;
         return (

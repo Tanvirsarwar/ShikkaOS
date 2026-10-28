@@ -1,12 +1,14 @@
 "use client";
 import { Eye, Megaphone, Pin, PinOff, Plus } from "lucide-react";
-import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import type { Notice } from "@/api/contracts";
 import { repos } from "@/api/factory";
 import { keys, useMut, useNoticesQ } from "@/api/hooks";
 import { Badge, Btn, Empty, ErrorBox, Field, Modal, SkeletonRows } from "@/components/ui";
 import { fmtDateTime, fromLocalInput, toLocalInput } from "@/lib/dates";
 import { useT } from "@/lib/i18n";
+import { useIntent } from "@/store/intent";
 import { useUI } from "@/store/ui";
 
 export default function Notices() {
@@ -16,6 +18,21 @@ export default function Notices() {
   const [open, setOpen] = useState(false);
   const [sel, setSel] = useState<Notice | null>(null);
   const pin = useMut((id: string) => repos.notice.togglePin(id), [keys.notices]);
+  const qc = useQueryClient();
+  const intent = useIntent((s) => s.intent);
+  const clearIntent = useIntent((s) => s.clear);
+  const userId = useUI((s) => s.session?.userId);
+  const openNotice = (x: Notice) => {
+    setSel(x);
+    if (role !== "registrar") void repos.notice.markRead(x.id).then(() => qc.invalidateQueries({ queryKey: keys.notices }));
+  };
+  useEffect(() => {
+    if (intent?.kind !== "notice" || !q.data) return;
+    const x = q.data.find((nn) => nn.id === intent.id);
+    clearIntent();
+    if (x) openNotice(x);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [intent, q.data]);
   if (q.isLoading) return <SkeletonRows rows={6} />;
   if (q.isError) return <ErrorBox error={q.error} retry={() => void q.refetch()} />;
   const reg = role === "registrar";
@@ -30,8 +47,8 @@ export default function Notices() {
             return (
               <li key={x.id} className="card p-3">
                 <div className="flex items-start gap-2">
-                  <button type="button" className="min-w-0 flex-1 text-left" onClick={() => { setSel(x); if (!reg) void repos.notice.markRead(x.id); }}>
-                    <div className="flex flex-wrap items-center gap-1.5"><span className="font-bold">{x.pinned ? <Pin size={12} className="mr-1 inline -translate-y-px" /> : null}{x.title}</span><Badge>{x.audience === "all" ? t("nt.aud.all") : x.audience === "teachers" ? t("nt.aud.teachers") : t("nt.aud.class", { c: x.classNo ?? "" })}</Badge>{future ? <Badge tone="warn">{t("nt.scheduled")}</Badge> : null}</div>
+                  <button type="button" className="min-w-0 flex-1 text-left" onClick={() => openNotice(x)}>
+                    <div className="flex flex-wrap items-center gap-1.5">{!reg && userId && !(x.readBy ?? []).includes(userId) ? <span className="prio prio-medium" aria-label={t("ac.unread")} /> : null}<span className="font-bold">{x.pinned ? <Pin size={12} className="mr-1 inline -translate-y-px" /> : null}{x.title}</span><Badge>{x.audience === "all" ? t("nt.aud.all") : x.audience === "teachers" ? t("nt.aud.teachers") : t("nt.aud.class", { c: x.classNo ?? "" })}</Badge>{future ? <Badge tone="warn">{t("nt.scheduled")}</Badge> : null}</div>
                     <div className="muted mt-1 line-clamp-2 text-[13px]">{x.body}</div>
                     <div className="faint mt-1 flex items-center gap-3 text-[11px]"><span>{fmtDateTime(x.publishAt, lang)}</span>{reg ? <span className="flex items-center gap-1"><Eye size={11} />{n(x.reads)}</span> : null}</div>
                   </button>

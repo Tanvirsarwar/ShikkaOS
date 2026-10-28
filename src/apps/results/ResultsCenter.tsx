@@ -50,6 +50,8 @@ export default function ResultsCenter() {
   const [pubRow, setPubRow] = useState<{ classNo: number; section: string } | null>(null);
   const [unpubRow, setUnpubRow] = useState<{ classNo: number; section: string } | null>(null);
   const [returning, setReturning] = useState(false);
+  const [stateFilter, setStateFilter] = useState<CellState | null>(null);
+  const [query, setQuery] = useState("");
   const intent = useIntent((s) => s.intent);
   const clearIntent = useIntent((s) => s.clear);
 
@@ -68,18 +70,25 @@ export default function ResultsCenter() {
   const rowReady = (c: number, s: string) => { const l = rowCells(c, s); return l.length > 0 && l.every((x) => x.state === "verified") && !pubOf(c, s); };
 
   useEffect(() => {
+    if (intent?.kind === "cell" && matrix.data) {
+      setSel({ classNo: intent.classNo, section: intent.section, subject: intent.subject });
+      clearIntent();
+    }
     if (intent?.kind === "publish" && matrix.data) {
       const r = rows.find((x) => x.classNo === intent.classNo && rowReady(x.classNo, x.section));
       if (r) setPubRow(r);
       clearIntent();
     }
-  }); // eslint-disable-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [intent, matrix.data]);
 
   const verify = useMut((k: Key) => repos.marks.verify({ examId: eid, ...k }), [...RESULT_KEYS], t("rc.verified"));
   const publishAll = useMut(() => repos.result.publishAllReady(eid), [...RESULT_KEYS], (c) => t("rc.publishedall", { n: c }));
   const selCell = sel ? cellMap.get(`${sel.classNo}-${sel.section}-${sel.subject}`) : undefined;
   const selDef = sel ? subjects.data?.find((d) => d.classNo === sel.classNo && d.subject === sel.subject) : undefined;
   const readyCount = rows.filter((r) => rowReady(r.classNo, r.section)).length;
+  const qn = query.trim().toLowerCase().replace(/^class\s*/, "");
+  const visibleRows = rows.filter((r) => (!qn || `${r.classNo}-${r.section}`.toLowerCase().startsWith(qn) || `${r.classNo}${r.section}`.toLowerCase().startsWith(qn)) && (!stateFilter || rowCells(r.classNo, r.section).some((x) => x.state === stateFilter)));
 
   async function dlSubject() {
     if (!sel || !selDef) return;
@@ -107,25 +116,39 @@ export default function ResultsCenter() {
           <Btn onClick={() => setWiz({ file: null })}><Upload size={14} />{t("rc.import")}</Btn>
           <Btn variant="primary" disabled={readyCount === 0 || publishAll.isPending} onClick={() => publishAll.mutate(undefined)}><Send size={14} />{t("rc.publishall")} ({n(readyCount)})</Btn>
         </div>
-        <div className="flex flex-wrap gap-1.5 px-3 pt-3" aria-label={t("rc.legend")}>{STATES.map((s) => <StateChip key={s} state={s} />)}</div>
+        <div className="flex flex-wrap items-center gap-2 px-3 pt-3">
+          <input className="input !h-8 !w-[180px]" type="search" placeholder={t("rc.findclass")} aria-label={t("rc.findclass")} value={query} onChange={(e) => setQuery(e.target.value)} />
+          <div className="flex flex-wrap gap-1.5" role="group" aria-label={t("rc.legend")}>
+            {STATES.map((s) => (
+              <button key={s} type="button" aria-pressed={stateFilter === s} className="rounded-full" style={{ outline: stateFilter === s ? `2px solid ${STATE_META[s].color}` : undefined, outlineOffset: 1 }} onClick={() => setStateFilter(stateFilter === s ? null : s)} title={t("rc.filterby")}>
+                <StateChip state={s} />
+              </button>
+            ))}
+            {stateFilter || query ? <Btn size="sm" variant="ghost" onClick={() => { setStateFilter(null); setQuery(""); }}>{t("rc.clearfilter")}</Btn> : null}
+          </div>
+        </div>
         <div className="scroll-thin min-h-0 flex-1 overflow-auto p-3">
           <table className="table min-w-[760px]">
-            <thead><tr><th style={{ left: 0, zIndex: 2 }}>{t("col.class")}</th>{cols.map((c) => <th key={c.en}>{lang === "bn" ? c.bn : c.en}</th>)}<th>{t("rc.publish")}</th></tr></thead>
+            <thead><tr><th className="sticky-col">{t("col.class")}</th>{cols.map((c) => <th key={c.en}>{lang === "bn" ? c.bn : c.en}</th>)}<th>{t("rc.publish")}</th></tr></thead>
             <tbody>
-              {rows.map((r) => {
+              {visibleRows.length === 0 ? <tr><td colSpan={cols.length + 2}><Empty title={t("rc.nomatch")} /></td></tr> : null}
+              {visibleRows.map((r) => {
                 const pub = pubOf(r.classNo, r.section);
+                const rc = rowCells(r.classNo, r.section);
+                const doneN = rc.filter((x) => x.state === "verified" || x.state === "published").length;
                 return (
                   <tr key={`${r.classNo}-${r.section}`}>
-                    <td className="whitespace-nowrap font-bold">{t("rc.class", { c: r.classNo, s: r.section })}</td>
+                    <td className="sticky-col whitespace-nowrap"><div className="font-bold">{t("rc.class", { c: r.classNo, s: r.section })}</div><div className="faint num text-[11.5px]">{t("rc.progress", { a: n(doneN), b: n(rc.length) })}</div></td>
                     {cols.map((c) => {
                       const cell = cellMap.get(`${r.classNo}-${r.section}-${c.en}`);
                       if (!cell) return <td key={c.en} className="faint text-center">—</td>;
                       const m = STATE_META[cell.state];
                       const active = sel && sel.classNo === r.classNo && sel.section === r.section && sel.subject === c.en;
+                      const dim = stateFilter !== null && cell.state !== stateFilter;
                       return (
                         <td key={c.en} className="!p-1">
-                          <button type="button" className="flex w-full flex-col items-center gap-0.5 rounded-lg border px-1 py-1 text-[10px] font-bold" aria-label={`${t("rc.class", { c: r.classNo, s: r.section })} ${c.en}: ${t(`state.${cell.state}`)}`}
-                            style={{ color: m.color, borderColor: active ? "var(--accent)" : "var(--line)", background: `color-mix(in srgb, ${m.color} 10%, transparent)`, outline: active ? "2px solid var(--accent)" : undefined }}
+                          <button type="button" className="flex w-full min-w-[84px] flex-col items-center gap-0.5 whitespace-nowrap rounded-lg border px-1.5 py-1.5 text-[11px] font-semibold" aria-label={`${t("rc.class", { c: r.classNo, s: r.section })} ${c.en}: ${t(`state.${cell.state}`)}`}
+                            style={{ color: m.color, borderColor: active ? "var(--accent)" : "var(--line)", background: `color-mix(in srgb, ${m.color} 10%, transparent)`, outline: active ? "2px solid var(--accent)" : undefined, opacity: dim ? 0.32 : 1 }}
                             onClick={() => setSel({ classNo: r.classNo, section: r.section, subject: c.en })}>
                             <m.icon size={14} />{t(`state.${cell.state}`)}
                           </button>
@@ -150,7 +173,7 @@ export default function ResultsCenter() {
       </div>
 
       {sel && selCell ? (
-        <aside className="card absolute inset-y-0 right-0 z-[5] flex w-full flex-col rounded-none border-y-0 border-r-0 sm:w-[360px]" aria-label={t("rc.panel")}>
+        <aside style={{ background: "var(--card-solid)", boxShadow: "-12px 0 30px rgba(12,34,51,.12), -0.5px 0 0 var(--line)" }} className="absolute inset-y-0 right-0 z-[6] flex w-full flex-col rounded-none border-y-0 border-r-0 sm:w-[360px]" aria-label={t("rc.panel")}>
           <div className="flex items-start justify-between gap-2 p-4">
             <div><div className="font-bold">{t("rc.class", { c: sel.classNo, s: sel.section })} · {sel.subject}</div><div className="mt-1"><StateChip state={selCell.state} /></div></div>
             <Btn variant="icon" aria-label={t("close")} onClick={() => setSel(null)}><X size={16} /></Btn>
